@@ -28,6 +28,7 @@ export default function StudentDashboard() {
 
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [submitInfo, setSubmitInfo] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -77,11 +78,11 @@ export default function StudentDashboard() {
     } else {
       setSubmitted(false); setSubmitInfo('')
     }
-    setSelectedFile(null); setView('worksheet')
+    setSelectedFile(null); setEditing(false); setView('worksheet')
   }
 
   async function saveDraft(key: string, value: string) {
-    if (!student || !currentProjectId || submitted) return
+    if (!student || !currentProjectId || (submitted && !editing)) return
     const newAnswers = { ...answers, [key]: value }
     setAnswers(newAnswers)
     await supabase.from('answer_drafts').upsert({
@@ -135,6 +136,7 @@ export default function StudentDashboard() {
     if (error) { showToast('❌ 제출 중 오류가 발생했습니다.'); return }
 
     setSubmitted(true)
+    setEditing(false)
     setSubmitInfo(`제출 시각: ${now}${file_name ? ' · 파일: ' + file_name : ''}`)
     setSubmissions(prev => {
       const filtered = prev.filter(s => s.project_id !== currentProjectId)
@@ -245,10 +247,20 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {submitted && (
+          {submitted && !editing && (
             <div className={styles.submittedBanner}>
-              ✅ 이미 제출된 워크시트입니다.
-              <span className={styles.submittedInfo}>{submitInfo}</span>
+              <div className={styles.submittedLeft}>
+                <span>✅ 제출 완료</span>
+                <span className={styles.submittedInfo}>{submitInfo}</span>
+              </div>
+              <button className={styles.btnReEdit} onClick={() => setEditing(true)}>✏️ 수정하기</button>
+            </div>
+          )}
+
+          {submitted && editing && (
+            <div className={styles.editingBanner}>
+              ✏️ 수정 중입니다. 변경 후 <strong>재제출</strong>하면 기존 내용이 덮어씌워집니다.
+              <button className={styles.btnCancelEdit} onClick={() => setEditing(false)}>취소</button>
             </div>
           )}
 
@@ -274,7 +286,7 @@ export default function StudentDashboard() {
                         <textarea
                           className={`${styles.wsAnswer} ${!isQ ? styles.descAnswer : ''}`}
                           value={answers[key] || ''}
-                          readOnly={submitted}
+                          readOnly={submitted && !editing}
                           placeholder={isQ ? '여기에 답변을 작성하세요...' : '내용을 기록하세요...'}
                           onChange={e => saveDraft(key, e.target.value)}
                         />
@@ -286,9 +298,11 @@ export default function StudentDashboard() {
             ))}
           </div>
 
-          {!submitted && (
-            <div className={styles.submitForm}>
-              <div className={styles.submitFormTitle}>📤 워크시트 제출</div>
+          {(!submitted || editing) && (
+            <div className={`${styles.submitForm} ${editing ? styles.submitFormEditing : ''}`}>
+              <div className={styles.submitFormTitle}>
+                {editing ? '📝 수정 후 재제출' : '📤 워크시트 제출'}
+              </div>
               <div className={styles.fileUploadRow}>
                 <label className={styles.fileLabel}>
                   📎 파일 첨부 (선택)
@@ -296,10 +310,10 @@ export default function StudentDashboard() {
                 </label>
                 {selectedFile
                   ? <span className={styles.fileSelected}>📄 {selectedFile.name}</span>
-                  : <span className={styles.fileHint}>이미지, PDF, 문서 등</span>}
+                  : <span className={styles.fileHint}>{editing ? '새 파일로 교체하거나 그냥 재제출' : '이미지, PDF, 문서 등'}</span>}
               </div>
-              <button className={styles.btnSubmit} onClick={submitWorksheet} disabled={uploading}>
-                {uploading ? '⏳ 업로드 중...' : '제출하기'}
+              <button className={`${styles.btnSubmit} ${editing ? styles.btnResubmit : ''}`} onClick={submitWorksheet} disabled={uploading}>
+                {uploading ? '⏳ 업로드 중...' : editing ? '재제출하기' : '제출하기'}
               </button>
             </div>
           )}
