@@ -130,7 +130,7 @@ export default function StudentDashboard() {
       subject_id: currentSubjectId, subject_name: subj?.name || '',
       project_id: currentProjectId, project_title: proj.title,
       answers, submitted: true, file_name, file_size, file_path, submitted_at: now,
-    }, { onConflict: 'student_id,project_id' })
+    }, { onConflict: 'submissions_student_id_project_id_key' })
 
     setUploading(false)
     if (error) { showToast('❌ 제출 중 오류가 발생했습니다.'); return }
