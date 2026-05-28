@@ -183,7 +183,7 @@ export default function TeacherDashboard() {
 
   if (!teacher) return <div className="loading-center">로딩 중...</div>
 
-  const years = [...new Set([new Date().getFullYear(), ...submissions.map(s => s.year)])].sort((a, b) => b - a)
+  const years = Array.from(new Set([new Date().getFullYear(), ...submissions.map(s => s.year)])).sort((a, b) => b - a)
 
   return (
     <div className={styles.dashPage}>
