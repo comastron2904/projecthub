@@ -82,8 +82,8 @@
 .subjectCount { font-size: 0.68rem; color: var(--text-hint); background: #F1EFE8; padding: 1px 7px; border-radius: 20px; flex-shrink: 0; }
 .subjectDel { background: none; border: none; cursor: pointer; font-size: 0.78rem; color: var(--text-hint); padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
 .subjectDel:hover { background: var(--danger-light); color: var(--danger); }
-.addSubjectRow { display: flex; gap: 0.5rem; }
-.addSubjectInput { flex: 1; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addSubjectRow { display: flex; gap: 0.5rem; min-width: 0; overflow: hidden; }
+.addSubjectInput { flex: 1; min-width: 0; width: 0; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
 .addSubjectInput:focus { border-color: var(--accent-border); }
 .addSubjectInput::placeholder { color: var(--text-hint); }
 .btnAddSubject { padding: 0.55rem 0.75rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
