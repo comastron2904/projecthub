@@ -8,10 +8,9 @@ interface Subject { id: string; name: string }
 interface StageItem { type: 'q' | 'd'; content: string }
 interface Stage { title: string; items: StageItem[] }
 interface Project { id: string; subject_id: string; title: string; description: string; stages: Stage[] }
-interface Submission { project_id: string; answers: Record<string, string>; file_name: string | null; submitted_at: string }
+interface Submission { project_id: string; answers: Record<string, string>; file_name: string | null; file_path: string | null; submitted_at: string }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
-
 type View = 'subjects' | 'projects' | 'worksheet'
 
 export default function StudentDashboard() {
@@ -31,23 +30,22 @@ export default function StudentDashboard() {
   const [submitted, setSubmitted] = useState(false)
   const [submitInfo, setSubmitInfo] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   const [toast, setToast] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
 
-  /* ── Auth guard ── */
   useEffect(() => {
     const s = sessionStorage.getItem('ph_student')
     if (!s) { router.replace('/'); return }
     setStudent(JSON.parse(s))
   }, [router])
 
-  /* ── Load data ── */
   const loadData = useCallback(async (stuId: string) => {
     const [{ data: subs }, { data: projs }, { data: sbms }] = await Promise.all([
       supabase.from('subjects').select('*').order('created_at'),
       supabase.from('projects').select('*').order('created_at'),
-      supabase.from('submissions').select('project_id,answers,file_name,submitted_at').eq('student_id', stuId),
+      supabase.from('submissions').select('project_id,answers,file_name,file_path,submitted_at').eq('student_id', stuId),
     ])
     if (subs) setSubjects(subs)
     if (projs) setProjects(projs)
@@ -58,58 +56,67 @@ export default function StudentDashboard() {
 
   function showToast(msg: string) {
     setToast(msg); setToastVisible(true)
-    setTimeout(() => setToastVisible(false), 2200)
+    setTimeout(() => setToastVisible(false), 2500)
   }
 
-  /* ── Navigation ── */
   function selectSubject(id: string) {
-    setCurrentSubjectId(id)
-    setCurrentProjectId(null)
-    setView('projects')
+    setCurrentSubjectId(id); setCurrentProjectId(null); setView('projects')
   }
 
   async function selectProject(projId: string) {
     if (!student) return
     setCurrentProjectId(projId)
-
-    // Load draft answers
     const { data: draft } = await supabase.from('answer_drafts')
       .select('answers').eq('student_id', student.id).eq('project_id', projId).single()
     setAnswers(draft?.answers || {})
-
-    // Check submission
     const sub = submissions.find(s => s.project_id === projId)
     if (sub) {
       setSubmitted(true)
       setAnswers(sub.answers)
       setSubmitInfo(`제출 시각: ${sub.submitted_at}${sub.file_name ? ' · 파일: ' + sub.file_name : ''}`)
     } else {
-      setSubmitted(false)
-      setSubmitInfo('')
+      setSubmitted(false); setSubmitInfo('')
     }
-    setSelectedFile(null)
-    setView('worksheet')
+    setSelectedFile(null); setView('worksheet')
   }
 
-  /* ── Auto-save draft ── */
   async function saveDraft(key: string, value: string) {
     if (!student || !currentProjectId || submitted) return
     const newAnswers = { ...answers, [key]: value }
     setAnswers(newAnswers)
     await supabase.from('answer_drafts').upsert({
-      student_id: student.id,
-      subject_id: currentSubjectId,
-      project_id: currentProjectId,
-      answers: newAnswers,
+      student_id: student.id, subject_id: currentSubjectId,
+      project_id: currentProjectId, answers: newAnswers,
     }, { onConflict: 'student_id,project_id' })
   }
 
-  /* ── Submit ── */
   async function submitWorksheet() {
     if (!student || !currentProjectId || !currentSubjectId) return
     const proj = projects.find(p => p.id === currentProjectId)
     if (!proj) return
     const subj = subjects.find(s => s.id === currentSubjectId)
+    setUploading(true)
+
+    // 파일 업로드 (Supabase Storage)
+    let file_path: string | null = null
+    let file_name: string | null = null
+    let file_size: string | null = null
+
+    if (selectedFile) {
+      const ext = selectedFile.name.split('.').pop()
+      const storagePath = `submissions/${student.id}_${currentProjectId}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('projecthub-files')
+        .upload(storagePath, selectedFile, { upsert: true })
+      if (upErr) {
+        showToast('❌ 파일 업로드 중 오류가 발생했습니다.')
+        setUploading(false); return
+      }
+      file_path = storagePath
+      file_name = selectedFile.name
+      file_size = (selectedFile.size / 1024 / 1024).toFixed(1) + 'MB'
+    }
+
     const now = new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     const sid = student.id
     const grade = parseInt(sid[0]) || 1
@@ -121,19 +128,17 @@ export default function StudentDashboard() {
       student_id: sid, student_name: student.name,
       subject_id: currentSubjectId, subject_name: subj?.name || '',
       project_id: currentProjectId, project_title: proj.title,
-      answers, submitted: true,
-      file_name: selectedFile ? selectedFile.name : null,
-      file_size: selectedFile ? (selectedFile.size / 1024 / 1024).toFixed(1) + 'MB' : null,
-      submitted_at: now,
+      answers, submitted: true, file_name, file_size, file_path, submitted_at: now,
     }, { onConflict: 'student_id,project_id' })
 
+    setUploading(false)
     if (error) { showToast('❌ 제출 중 오류가 발생했습니다.'); return }
 
     setSubmitted(true)
-    setSubmitInfo(`제출 시각: ${now}${selectedFile ? ' · 파일: ' + selectedFile.name : ''}`)
+    setSubmitInfo(`제출 시각: ${now}${file_name ? ' · 파일: ' + file_name : ''}`)
     setSubmissions(prev => {
       const filtered = prev.filter(s => s.project_id !== currentProjectId)
-      return [...filtered, { project_id: currentProjectId, answers, file_name: selectedFile?.name || null, submitted_at: now }]
+      return [...filtered, { project_id: currentProjectId, answers, file_name, file_path, submitted_at: now }]
     })
     showToast('✅ 제출이 완료되었습니다!')
   }
@@ -143,19 +148,10 @@ export default function StudentDashboard() {
   const currentProject = projects.find(p => p.id === currentProjectId)
   const currentSubject = subjects.find(s => s.id === currentSubjectId)
 
-  // Progress
   const allItems = (currentProject?.stages || []).flatMap(st => st.items)
-  const answered = allItems.filter((_, i) => {
-    const stageIdx = (currentProject?.stages || []).findIndex(st => st.items.includes(_))
-    return answers[`${stageIdx}_${st_item_idx(currentProject!, stageIdx, _)}`]?.trim()
-  }).length
-
-  function st_item_idx(proj: Project, si: number, item: StageItem) {
-    return proj.stages[si]?.items.indexOf(item) ?? 0
-  }
-
   const totalItems = allItems.length
-  const pct = totalItems > 0 ? Math.round(answered / totalItems * 100) : 0
+  const answeredCount = Object.values(answers).filter(v => v?.trim()).length
+  const pct = totalItems > 0 ? Math.round(answeredCount / totalItems * 100) : 0
 
   if (!student) return <div className="loading-center">로딩 중...</div>
 
@@ -178,16 +174,13 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ── View: Subjects ── */}
+      {/* Subjects */}
       {view === 'subjects' && (
         <div>
           <p className={styles.sectionTitle}>📚 과목 선택</p>
           <p className={styles.sectionSub}>참여할 과목을 선택하세요.</p>
           {visibleSubjects.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div>📭</div>
-              <p>아직 개설된 과목이 없습니다.<br/>교사가 과목을 추가하면 여기에 표시됩니다.</p>
-            </div>
+            <div className={styles.emptyState}><div>📭</div><p>아직 개설된 과목이 없습니다.</p></div>
           ) : (
             <div className={styles.subjectGrid}>
               {visibleSubjects.map((s, i) => (
@@ -202,7 +195,7 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* ── View: Projects ── */}
+      {/* Projects */}
       {view === 'projects' && (
         <div>
           <button className={styles.backBtn} onClick={() => setView('subjects')}>← 과목 목록으로</button>
@@ -232,7 +225,7 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* ── View: Worksheet ── */}
+      {/* Worksheet */}
       {view === 'worksheet' && currentProject && (
         <div>
           <button className={styles.backBtn} onClick={() => setView('projects')}>← 프로젝트 목록으로</button>
@@ -244,16 +237,14 @@ export default function StudentDashboard() {
               <div className={styles.wsMetaItem}>📋 {currentProject.stages.length}단계</div>
               {submitted && <div className={styles.wsMetaItem}>✅ 제출완료</div>}
             </div>
-            {/* Progress */}
             <div className={styles.wsProgress}>
-              <span>{Object.values(answers).filter(v => v.trim()).length}/{totalItems}개 작성</span>
+              <span>{answeredCount}/{totalItems}개 작성</span>
               <div className={styles.wsProgressBar}>
                 <div className={styles.wsProgressFill} style={{ width: pct + '%' }} />
               </div>
             </div>
           </div>
 
-          {/* Submitted banner */}
           {submitted && (
             <div className={styles.submittedBanner}>
               ✅ 이미 제출된 워크시트입니다.
@@ -261,7 +252,6 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* Stages */}
           <div className={styles.stagesList}>
             {currentProject.stages.map((st, si) => (
               <div key={si} className={styles.wsStage}>
@@ -296,7 +286,6 @@ export default function StudentDashboard() {
             ))}
           </div>
 
-          {/* Submit form */}
           {!submitted && (
             <div className={styles.submitForm}>
               <div className={styles.submitFormTitle}>📤 워크시트 제출</div>
@@ -305,15 +294,18 @@ export default function StudentDashboard() {
                   📎 파일 첨부 (선택)
                   <input type="file" style={{ display: 'none' }} onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
                 </label>
-                {selectedFile && <span className={styles.fileName}>{selectedFile.name}</span>}
+                {selectedFile
+                  ? <span className={styles.fileSelected}>📄 {selectedFile.name}</span>
+                  : <span className={styles.fileHint}>이미지, PDF, 문서 등</span>}
               </div>
-              <button className={styles.btnSubmit} onClick={submitWorksheet}>제출하기</button>
+              <button className={styles.btnSubmit} onClick={submitWorksheet} disabled={uploading}>
+                {uploading ? '⏳ 업로드 중...' : '제출하기'}
+              </button>
             </div>
           )}
         </div>
       )}
 
-      {/* Toast */}
       <div className={`toast ${toastVisible ? 'show' : ''}`}>{toast}</div>
     </div>
   )
