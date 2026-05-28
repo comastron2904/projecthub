@@ -203,7 +203,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className={styles.footer}>© 2025 ProjectHub · 프로젝트 기반 학습 플랫폼</div>
+        <div className={styles.footer}>© ProjectHub · 프로젝트 기반 학습 플랫폼</div>
       </div>
     </div>
   )
