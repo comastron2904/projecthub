@@ -124,13 +124,29 @@ export default function StudentDashboard() {
     const cls = parseInt(sid[1]) || 1
     const no = parseInt(sid.slice(2)) || 1
 
-    const { error } = await supabase.from('submissions').upsert({
+    const payload = {
       year: new Date().getFullYear(), grade, cls, no,
       student_id: sid, student_name: student.name,
       subject_id: currentSubjectId, subject_name: subj?.name || '',
       project_id: currentProjectId, project_title: proj.title,
       answers, submitted: true, file_name, file_size, file_path, submitted_at: now,
-    }, { onConflict: 'submissions_student_id_project_id_key' })
+    }
+
+    // 기존 제출 여부 확인
+    const { data: existing } = await supabase.from('submissions')
+      .select('id').eq('student_id', sid).eq('project_id', currentProjectId).single()
+
+    let error
+    if (existing) {
+      // 재제출: update
+      const { error: e } = await supabase.from('submissions')
+        .update(payload).eq('id', existing.id)
+      error = e
+    } else {
+      // 최초 제출: insert
+      const { error: e } = await supabase.from('submissions').insert(payload)
+      error = e
+    }
 
     setUploading(false)
     if (error) { showToast('❌ 제출 중 오류가 발생했습니다.'); return }
