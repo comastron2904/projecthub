@@ -180,8 +180,12 @@
 .previewItemText { font-size: 0.85rem; color: var(--text-main); line-height: 1.5; }
 
 /* Download buttons */
-.btnDlAll { padding: 0.45rem 1rem; background: var(--teacher); color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
-.btnDlAll:hover { background: #112845; }
-.btnDlSingle { padding: 0.32rem 0.7rem; background: var(--teacher-light); color: var(--teacher); border: 1.5px solid var(--teacher-border); border-radius: 7px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
-.btnDlSingle:hover { background: var(--teacher); color: white; }
+.btnDlAll { display: inline-flex; align-items: center; gap: 6px; padding: 0.5rem 1.1rem; background: var(--teacher); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(26,58,92,0.2); }
+.btnDlAll:hover { background: #112845; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,92,0.3); }
+.btnDlAllIcon { font-size: 0.9rem; }
+.btnDlWorksheet { display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.65rem; background: var(--teacher-light); color: var(--teacher); border: 1.5px solid var(--teacher-border); border-radius: 7px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.btnDlWorksheet:hover { background: var(--teacher); color: white; border-color: var(--teacher); }
+.btnDlFile { display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.65rem; background: #FFF3E0; color: #C25E00; border: 1.5px solid #F8C97A; border-radius: 7px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.15s; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.btnDlFile:hover { background: #E67700; color: white; border-color: #E67700; }
+.fileSizeInBtn { font-size: 0.65rem; font-weight: 400; opacity: 0.75; margin-left: 2px; }
 .dlDisabled { font-size: 0.8rem; color: var(--text-hint); }
