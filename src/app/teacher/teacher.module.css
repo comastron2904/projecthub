@@ -1,0 +1,180 @@
+.dashPage {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Topbar */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.dashLogo { display: flex; align-items: center; gap: 8px; }
+.logoIcon { width: 32px; height: 32px; border-radius: 8px; background: var(--teacher); display: flex; align-items: center; justify-content: center; }
+.dashSiteName { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
+.dashUser { display: flex; align-items: center; gap: 10px; }
+.dashUsername { font-size: 0.83rem; color: var(--text-sub); }
+.btnLogout {
+  padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 8px;
+  background: white; font-size: 0.8rem; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; color: var(--text-sub); transition: all 0.15s;
+}
+.btnLogout:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Tabs */
+.dashTabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--border); border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; }
+.dashTab {
+  padding: 0.6rem 1rem; border: none; background: none; cursor: pointer; border-radius: 9px;
+  font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500;
+  color: var(--text-sub); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.activeTab { background: var(--teacher); color: white; box-shadow: 0 2px 8px rgba(26,58,92,0.25); }
+
+/* Section title */
+.sectionTitle { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem; }
+
+/* Filter */
+.filterCard { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.filterRow { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+.filterField { flex: 1; min-width: 0; }
+.filterField label { font-size: 0.78rem; font-weight: 500; color: var(--text-sub); display: block; margin-bottom: 0.35rem; }
+.filterField select {
+  width: 100%; padding: 0.62rem 0.8rem; border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main);
+  background: white; outline: none; cursor: pointer;
+}
+.filterField select:focus { border-color: var(--teacher-border); }
+.btnSearch {
+  flex-shrink: 0; padding: 0.65rem 1.4rem; background: var(--teacher); color: white; border: none;
+  border-radius: 9px; font-size: 0.9rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s; height: 42px;
+}
+.btnSearch:hover { background: #112845; }
+
+/* Result */
+.resultCard { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.resultHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+.resultInfo { font-size: 0.83rem; color: var(--text-sub); }
+.resultInfo strong { color: var(--text-main); font-weight: 700; }
+.subTable { width: 100%; border-collapse: collapse; }
+.subTable th { font-size: 0.76rem; font-weight: 700; color: var(--text-hint); text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+.subTable td { font-size: 0.85rem; color: var(--text-main); padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border); }
+.subTable tr:last-child td { border-bottom: none; }
+.subTable tr:hover td { background: #fafaf8; }
+.studentNum { font-size: 0.78rem; color: var(--text-sub); font-family: monospace; }
+.fileName { color: var(--teacher); font-weight: 500; font-size: 0.83rem; }
+.fileSize { font-size: 0.76rem; color: var(--text-hint); }
+.submitDate { font-size: 0.78rem; color: var(--text-sub); }
+.badgeSubmitted { background: var(--success-light); color: var(--success); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.badgeNone { background: #F1EFE8; color: var(--text-hint); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.emptyState { text-align: center; padding: 3rem 1rem; color: var(--text-hint); }
+.emptyIcon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.emptyText { font-size: 0.88rem; }
+
+/* Guidelines layout */
+.glLayout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start; }
+.glSidebar { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.25rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.glSidebarTitle { font-size: 0.78rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.07em; margin-bottom: 0.85rem; text-transform: uppercase; }
+.glEmptySidebar { text-align: center; padding: 1.5rem 0.5rem; color: var(--text-hint); font-size: 0.8rem; line-height: 1.6; }
+.subjectList { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+.subjectItem { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; gap: 6px; }
+.subjectItem:hover { background: var(--accent-light); border-color: var(--accent-border); }
+.activeSubject { background: var(--accent-light); border-color: var(--accent-border); }
+.subjectItemName { font-size: 0.88rem; font-weight: 500; color: var(--text-main); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subjectCount { font-size: 0.68rem; color: var(--text-hint); background: #F1EFE8; padding: 1px 7px; border-radius: 20px; flex-shrink: 0; }
+.subjectDel { background: none; border: none; cursor: pointer; font-size: 0.78rem; color: var(--text-hint); padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+.subjectDel:hover { background: var(--danger-light); color: var(--danger); }
+.addSubjectRow { display: flex; gap: 0.5rem; }
+.addSubjectInput { flex: 1; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addSubjectInput:focus { border-color: var(--accent-border); }
+.addSubjectInput::placeholder { color: var(--text-hint); }
+.btnAddSubject { padding: 0.55rem 0.75rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.btnAddSubject:hover { background: #6344a8; }
+
+/* Project list */
+.projListPanel { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.projListHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border); }
+.projListSubjectName { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.projListBadge { font-size: 0.7rem; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 2px 9px; border-radius: 20px; margin-left: 6px; }
+.btnBackSubject { display: inline-flex; align-items: center; gap: 4px; padding: 0.35rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; font-size: 0.78rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-sub); cursor: pointer; }
+.btnBackSubject:hover { border-color: var(--teacher-border); color: var(--teacher); }
+.projCards { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+.projCardItem { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border: 1.5px solid var(--border); border-radius: 11px; background: white; cursor: pointer; transition: all 0.15s; }
+.projCardItem:hover { border-color: var(--accent-border); background: var(--accent-light); }
+.activeProjCard { border-color: var(--accent); background: var(--accent-light); }
+.projCardIcon { width: 34px; height: 34px; border-radius: 9px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.projCardInfo { flex: 1; min-width: 0; }
+.projCardTitle { font-size: 0.88rem; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projCardMeta { font-size: 0.72rem; color: var(--text-hint); margin-top: 1px; }
+.projDelBtn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 0.72rem; color: var(--text-hint); display: flex; align-items: center; justify-content: center; }
+.projDelBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.projEmpty { text-align: center; padding: 2rem 1rem; color: var(--text-hint); font-size: 0.82rem; line-height: 1.7; border: 1.5px dashed var(--border); border-radius: 11px; margin-bottom: 1rem; }
+.addProjRow { display: flex; gap: 0.5rem; }
+.addProjInput { flex: 1; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addProjInput:focus { border-color: var(--accent-border); }
+.addProjInput::placeholder { color: var(--text-hint); }
+.btnAddProj { padding: 0.55rem 0.75rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
+.btnAddProj:hover { background: #6344a8; }
+
+/* Editor */
+.glEditor { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.glEditorPlaceholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; color: var(--text-hint); gap: 0.75rem; background: var(--card); border-radius: 16px; border: 1px solid var(--border); }
+.phIcon { font-size: 2.8rem; }
+.glEditorPlaceholder p { font-size: 0.88rem; text-align: center; line-height: 1.7; }
+.glEditorHeader { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); gap: 1rem; }
+.glEditorTitleGroup { flex: 1; }
+.glSubjectLabel { font-size: 0.72rem; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.3rem; }
+.glTitleInput { width: 100%; border: none; font-size: 1.15rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; background: transparent; padding: 0; }
+.glTitleInput::placeholder { color: var(--text-hint); font-weight: 400; }
+.glDescInput { width: 100%; border: none; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-sub); outline: none; background: transparent; padding: 0; margin-top: 0.4rem; resize: none; line-height: 1.6; }
+.glDescInput::placeholder { color: var(--text-hint); }
+.glHeaderActions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.btnGlSave { padding: 0.5rem 1.1rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.83rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnGlSave:hover { background: #6344a8; }
+.btnGlPreview { padding: 0.5rem 1rem; background: white; color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 9px; font-size: 0.83rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnGlPreview:hover { background: var(--accent-light); }
+
+/* Stages */
+.stagesSectionHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.stagesSectionLabel { font-size: 0.9rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 7px; }
+.stagesSectionLabel span { background: var(--accent-light); color: var(--accent); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.btnAddStage { padding: 0.4rem 0.85rem; background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 8px; font-size: 0.8rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnAddStage:hover { background: var(--accent); color: white; }
+.stagesList { display: flex; flex-direction: column; gap: 0.85rem; }
+.stagesEmpty { text-align: center; padding: 2rem 1rem; color: var(--text-hint); font-size: 0.85rem; border: 1.5px dashed var(--border); border-radius: 12px; }
+.stageCard { border: 1.5px solid var(--border); border-radius: 13px; background: #FDFCFB; overflow: hidden; }
+.stageCard:hover { border-color: var(--accent-border); }
+.stageCardHead { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: white; border-bottom: 1px solid var(--border); }
+.stageBadge { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: white; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stageTitleInput { flex: 1; border: none; font-size: 0.9rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; background: transparent; }
+.stageTitleInput::placeholder { color: var(--text-hint); font-weight: 400; }
+.stageCardActions { display: flex; gap: 0.3rem; margin-left: auto; }
+.stageMoveBtn, .stageDelBtn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 0.75rem; color: var(--text-hint); display: flex; align-items: center; justify-content: center; }
+.stageMoveBtn:hover { border-color: var(--teacher-border); color: var(--teacher); background: var(--teacher-light); }
+.stageDelBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.stageMoveBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.stageCardBody { padding: 0.85rem 1rem; }
+.itemsList { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.65rem; }
+.itemRow { display: flex; gap: 0.5rem; align-items: flex-start; }
+.itemTypeBadge { flex-shrink: 0; margin-top: 0.45rem; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 12px; }
+.itemTypeQ { background: #EEF3FF; color: #3B5BDB; }
+.itemTypeD { background: #FFF3E0; color: #E67700; }
+.itemContentInput { flex: 1; padding: 0.5rem 0.65rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; resize: vertical; line-height: 1.5; }
+.itemContentInput:focus { border-color: var(--accent-border); }
+.itemDelBtn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 0.72rem; color: var(--text-hint); flex-shrink: 0; margin-top: 0.35rem; }
+.itemDelBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.addItemRow { display: flex; gap: 0.5rem; }
+.btnAddItem { padding: 0.38rem 0.75rem; background: #EEF3FF; color: #3B5BDB; border: 1.5px solid #C5D3F5; border-radius: 8px; font-size: 0.78rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnAddItem:hover { background: #3B5BDB; color: white; }
+.btnAddDesc { background: #FFF3E0; color: #E67700; border-color: #F8D4A0; }
+.btnAddDesc:hover { background: #E67700; color: white; }
+
+/* Preview modal content */
+.previewSubjectBadge { font-size: 0.72rem; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 3px 10px; border-radius: 20px; display: inline-block; margin-bottom: 0.5rem; }
+.previewTitle { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.4rem; }
+.previewDesc { font-size: 0.85rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 1rem; }
+.previewStage { margin-bottom: 1rem; }
+.previewStageHead { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.previewStageNum { width: 24px; height: 24px; border-radius: 8px; background: var(--accent); color: white; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.previewStageName { font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
+.previewItem { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.5rem 0.65rem; background: #FAFAF8; border-radius: 8px; margin-bottom: 0.4rem; }
+.previewItemBadge { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-top: 1px; }
+.previewItemText { font-size: 0.85rem; color: var(--text-main); line-height: 1.5; }

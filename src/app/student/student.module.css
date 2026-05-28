@@ -1,0 +1,89 @@
+.dashPage {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Topbar */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.dashLogo { display: flex; align-items: center; gap: 8px; }
+.logoIcon { width: 32px; height: 32px; border-radius: 8px; background: var(--student); display: flex; align-items: center; justify-content: center; }
+.dashSiteName { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
+.stuInfo { display: flex; align-items: center; gap: 10px; }
+.stuBadge { background: var(--student-light); color: var(--student); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: 0.05em; }
+.stuName { font-size: 0.83rem; color: var(--text-sub); }
+.btnLogout { padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; font-size: 0.8rem; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; color: var(--text-sub); }
+.btnLogout:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Nav */
+.backBtn { font-size: 0.85rem; color: var(--student); background: none; border: none; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; margin-bottom: 0.75rem; display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.6rem; border-radius: 8px; }
+.backBtn:hover { background: var(--student-light); }
+.breadcrumb { font-size: 0.82rem; color: var(--text-hint); margin-bottom: 0.25rem; }
+.sectionTitle { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; }
+.sectionSub { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 1.25rem; }
+
+/* Subject grid */
+.subjectGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.85rem; }
+.subjectCard { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1.25rem 1rem; cursor: pointer; text-align: center; transition: all 0.18s; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+.subjectCard:hover { border-color: var(--student-border); background: var(--student-light); transform: translateY(-2px); }
+.subjectCardIcon { font-size: 2rem; margin-bottom: 0.5rem; }
+.subjectCardName { font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.subjectCardMeta { font-size: 0.75rem; color: var(--text-hint); }
+
+/* Project grid */
+.projGrid { display: flex; flex-direction: column; gap: 0.75rem; }
+.projCard { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1.25rem; cursor: pointer; transition: all 0.18s; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+.projCard:hover { border-color: var(--student-border); transform: translateY(-1px); }
+.projSubmitted { background: var(--student-light); border-color: var(--student-border); }
+.projCardNum { width: 28px; height: 28px; border-radius: 8px; background: var(--student); color: white; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 0.6rem; }
+.projCardName { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.projCardDesc { font-size: 0.83rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 0.5rem; }
+.projCardFooter { display: flex; align-items: center; gap: 0.5rem; }
+.projCardStages { font-size: 0.75rem; color: var(--text-hint); background: #F1EFE8; padding: 2px 8px; border-radius: 20px; }
+.projSubmittedBadge { font-size: 0.75rem; color: var(--success); background: var(--success-light); padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+
+/* Worksheet */
+.worksheetHeader { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.wsSubjectBadge { font-size: 0.72rem; font-weight: 700; color: var(--student); background: var(--student-light); padding: 3px 10px; border-radius: 20px; display: inline-block; margin-bottom: 0.4rem; }
+.wsProjTitle { font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; }
+.wsProjDesc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 0.5rem; line-height: 1.5; }
+.wsMeta { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; }
+.wsMetaItem { font-size: 0.8rem; color: var(--text-sub); }
+.wsProgress { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; color: var(--text-sub); }
+.wsProgressBar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.wsProgressFill { height: 100%; background: var(--student); border-radius: 3px; transition: width 0.3s; }
+
+.submittedBanner { background: var(--success-light); border: 1.5px solid var(--student-border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; font-size: 0.88rem; color: var(--success); font-weight: 600; }
+.submittedInfo { display: block; font-size: 0.8rem; font-weight: 400; color: var(--text-sub); margin-top: 0.25rem; }
+
+/* Stage */
+.stagesList { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem; }
+.wsStage { background: var(--card); border-radius: 14px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
+.wsStageHead { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.25rem; background: var(--student-light); border-bottom: 1px solid var(--border); }
+.wsStageNum { width: 26px; height: 26px; border-radius: 8px; background: var(--student); color: white; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.wsStageName { font-size: 0.9rem; font-weight: 700; color: var(--student); }
+.wsStageBody { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; }
+.wsItem {}
+.wsItemPrompt { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; }
+.wsItemBadge { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-top: 1px; }
+.wsBadgeQ { background: #EEF3FF; color: #3B5BDB; }
+.wsBadgeD { background: #FFF3E0; color: #E67700; }
+.wsItemText { font-size: 0.88rem; color: var(--text-main); line-height: 1.55; }
+.wsAnswer { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; resize: vertical; min-height: 80px; line-height: 1.6; transition: border-color 0.2s; }
+.wsAnswer:focus { border-color: var(--student-border); }
+.wsAnswer::placeholder { color: var(--text-hint); }
+.wsAnswer[readonly] { background: #FAFAF8; color: var(--text-sub); cursor: default; }
+.descAnswer { background: #FFFDF8; border-color: #F0EAD8; }
+
+/* Submit form */
+.submitForm { background: var(--card); border-radius: 16px; border: 1.5px solid var(--student-border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.submitFormTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem; }
+.fileUploadRow { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.fileLabel { padding: 0.5rem 1rem; background: white; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.83rem; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; color: var(--text-sub); }
+.fileLabel:hover { border-color: var(--student-border); color: var(--student); }
+.fileName { font-size: 0.8rem; color: var(--text-sub); }
+.btnSubmit { width: 100%; padding: 0.85rem; background: var(--student); color: white; border: none; border-radius: 10px; font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.18s; }
+.btnSubmit:hover { background: #1e4029; transform: translateY(-1px); }
+
+.emptyState { text-align: center; padding: 3rem 1rem; color: var(--text-hint); font-size: 0.88rem; line-height: 1.8; }

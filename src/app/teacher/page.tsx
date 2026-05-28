@@ -1,0 +1,495 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import styles from './teacher.module.css'
+
+/* ── Types ── */
+interface Subject { id: string; name: string }
+interface StageItem { type: 'q' | 'd'; content: string }
+interface Stage { title: string; items: StageItem[] }
+interface Project { id: string; subject_id: string; title: string; description: string; stages: Stage[] }
+interface Submission {
+  id: number; year: number; grade: number; cls: number; no: number;
+  student_id: string; student_name: string; subject_id: string; subject_name: string;
+  project_id: string; project_title: string; file_name: string | null;
+  file_size: string | null; submitted_at: string | null; submitted: boolean;
+}
+
+const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
+
+export default function TeacherDashboard() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [teacher, setTeacher] = useState('')
+  const [dashTab, setDashTab] = useState<'submissions' | 'guidelines'>('submissions')
+
+  // Data
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+
+  // Guidelines state
+  const [currentSubjectId, setCurrentSubjectId] = useState<string | null>(null)
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [newSubjectName, setNewSubjectName] = useState('')
+  const [newProjName, setNewProjName] = useState('')
+  const [editorTitle, setEditorTitle] = useState('')
+  const [editorDesc, setEditorDesc] = useState('')
+  const [editorStages, setEditorStages] = useState<Stage[]>([])
+  const [glView, setGlView] = useState<'sidebar' | 'projlist' | 'editor'>('sidebar')
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [toast, setToast] = useState('')
+  const [toastVisible, setToastVisible] = useState(false)
+
+  // Submissions filter
+  const [fYear, setFYear] = useState(new Date().getFullYear())
+  const [fGrade, setFGrade] = useState('')
+  const [fClass, setFClass] = useState('')
+  const [fSubject, setFSubject] = useState('')
+  const [fProject, setFProject] = useState('')
+  const [fStatus, setFStatus] = useState('')
+  const [filteredSubs, setFilteredSubs] = useState<Submission[]>([])
+  const [searched, setSearched] = useState(false)
+
+  /* ── Auth guard ── */
+  useEffect(() => {
+    const t = sessionStorage.getItem('ph_teacher')
+    if (!t) { router.replace('/'); return }
+    setTeacher(t)
+  }, [router])
+
+  /* ── Load data ── */
+  const loadData = useCallback(async () => {
+    const [{ data: subs }, { data: projs }, { data: sbms }] = await Promise.all([
+      supabase.from('subjects').select('*').order('created_at'),
+      supabase.from('projects').select('*').order('created_at'),
+      supabase.from('submissions').select('*').order('created_at'),
+    ])
+    if (subs) setSubjects(subs)
+    if (projs) setProjects(projs)
+    if (sbms) setSubmissions(sbms)
+  }, [supabase])
+
+  useEffect(() => { if (teacher) loadData() }, [teacher, loadData])
+
+  /* ── Toast ── */
+  function showToast(msg: string) {
+    setToast(msg)
+    setToastVisible(true)
+    setTimeout(() => setToastVisible(false), 2200)
+  }
+
+  /* ── Subject CRUD ── */
+  async function addSubject() {
+    const name = newSubjectName.trim()
+    if (!name) return
+    const id = 'subj_' + Date.now()
+    const { error } = await supabase.from('subjects').insert({ id, name })
+    if (!error) { setSubjects(prev => [...prev, { id, name }]); setNewSubjectName('') }
+  }
+
+  async function deleteSubject(id: string) {
+    if (!confirm('과목과 모든 프로젝트를 삭제할까요?')) return
+    await supabase.from('subjects').delete().eq('id', id)
+    setSubjects(prev => prev.filter(s => s.id !== id))
+    setProjects(prev => prev.filter(p => p.subject_id !== id))
+    if (currentSubjectId === id) { setCurrentSubjectId(null); setCurrentProjectId(null); setGlView('sidebar') }
+  }
+
+  /* ── Project CRUD ── */
+  async function addProject() {
+    const title = newProjName.trim()
+    if (!title || !currentSubjectId) return
+    const id = 'proj_' + Date.now()
+    const { error } = await supabase.from('projects').insert({ id, subject_id: currentSubjectId, title, description: '', stages: [] })
+    if (!error) {
+      setProjects(prev => [...prev, { id, subject_id: currentSubjectId!, title, description: '', stages: [] }])
+      setNewProjName('')
+    }
+  }
+
+  async function deleteProject(id: string) {
+    if (!confirm('프로젝트를 삭제할까요?')) return
+    await supabase.from('projects').delete().eq('id', id)
+    setProjects(prev => prev.filter(p => p.id !== id))
+    if (currentProjectId === id) { setCurrentProjectId(null); setGlView('projlist') }
+  }
+
+  /* ── Editor ── */
+  function openEditor(projId: string) {
+    const proj = projects.find(p => p.id === projId)
+    if (!proj) return
+    setCurrentProjectId(projId)
+    setEditorTitle(proj.title)
+    setEditorDesc(proj.description)
+    setEditorStages(JSON.parse(JSON.stringify(proj.stages)))
+    setGlView('editor')
+  }
+
+  async function saveGuideline() {
+    if (!currentProjectId) return
+    const { error } = await supabase.from('projects').update({
+      title: editorTitle, description: editorDesc, stages: editorStages
+    }).eq('id', currentProjectId)
+    if (!error) {
+      setProjects(prev => prev.map(p => p.id === currentProjectId
+        ? { ...p, title: editorTitle, description: editorDesc, stages: editorStages } : p))
+      showToast('✅ 가이드라인이 저장되었습니다.')
+    }
+  }
+
+  function addStage() {
+    setEditorStages(prev => [...prev, { title: '', items: [] }])
+  }
+  function deleteStage(i: number) {
+    setEditorStages(prev => prev.filter((_, idx) => idx !== i))
+  }
+  function moveStage(i: number, dir: -1 | 1) {
+    const arr = [...editorStages]
+    const j = i + dir
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+    setEditorStages(arr)
+  }
+  function updateStageTitle(i: number, val: string) {
+    setEditorStages(prev => prev.map((s, idx) => idx === i ? { ...s, title: val } : s))
+  }
+  function addItem(si: number, type: 'q' | 'd') {
+    setEditorStages(prev => prev.map((s, idx) => idx === si ? { ...s, items: [...s.items, { type, content: '' }] } : s))
+  }
+  function deleteItem(si: number, ii: number) {
+    setEditorStages(prev => prev.map((s, idx) => idx === si ? { ...s, items: s.items.filter((_, iii) => iii !== ii) } : s))
+  }
+  function updateItem(si: number, ii: number, content: string) {
+    setEditorStages(prev => prev.map((s, idx) => idx === si
+      ? { ...s, items: s.items.map((it, iii) => iii === ii ? { ...it, content } : it) } : s))
+  }
+
+  /* ── Submissions filter ── */
+  function searchSubmissions() {
+    let filtered = submissions.filter(s => s.year === fYear)
+    if (fGrade) filtered = filtered.filter(s => String(s.grade) === fGrade)
+    if (fClass) filtered = filtered.filter(s => String(s.cls) === fClass)
+    if (fSubject) filtered = filtered.filter(s => s.subject_id === fSubject)
+    if (fProject) filtered = filtered.filter(s => s.project_id === fProject)
+    if (fStatus === 'submitted') filtered = filtered.filter(s => s.submitted)
+    if (fStatus === 'none') filtered = filtered.filter(s => !s.submitted)
+    setFilteredSubs(filtered)
+    setSearched(true)
+  }
+
+  function getSubjectProjects() { return projects.filter(p => p.subject_id === currentSubjectId) }
+
+  if (!teacher) return <div className="loading-center">로딩 중...</div>
+
+  const years = [...new Set([new Date().getFullYear(), ...submissions.map(s => s.year)])].sort((a, b) => b - a)
+
+  return (
+    <div className={styles.dashPage}>
+      {/* Topbar */}
+      <div className={styles.topbar}>
+        <div className={styles.dashLogo}>
+          <div className={styles.logoIcon}>
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </div>
+          <span className={styles.dashSiteName}>ProjectHub</span>
+        </div>
+        <div className={styles.dashUser}>
+          <span className={styles.dashUsername}>{teacher} 선생님</span>
+          <button className={styles.btnLogout} onClick={() => { sessionStorage.removeItem('ph_teacher'); router.replace('/') }}>로그아웃</button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className={styles.dashTabs}>
+        <button className={`${styles.dashTab} ${dashTab === 'submissions' ? styles.activeTab : ''}`} onClick={() => setDashTab('submissions')}>
+          📋 제출 파일 관리
+        </button>
+        <button className={`${styles.dashTab} ${dashTab === 'guidelines' ? styles.activeTab : ''}`} onClick={() => setDashTab('guidelines')}>
+          📚 가이드라인 설정
+        </button>
+      </div>
+
+      {/* ── Submissions Pane ── */}
+      {dashTab === 'submissions' && (
+        <div>
+          <div className={styles.sectionTitle}>제출 파일 조회</div>
+          <div className={styles.filterCard}>
+            <div className={styles.filterRow}>
+              <div className={styles.filterField}>
+                <label>연도</label>
+                <select value={fYear} onChange={e => setFYear(Number(e.target.value))}>
+                  {years.map(y => <option key={y} value={y}>{y}년</option>)}
+                </select>
+              </div>
+              <div className={styles.filterField}>
+                <label>학년</label>
+                <select value={fGrade} onChange={e => setFGrade(e.target.value)}>
+                  <option value="">전체</option>
+                  {[1,2,3].map(g => <option key={g} value={g}>{g}학년</option>)}
+                </select>
+              </div>
+              <div className={styles.filterField}>
+                <label>반</label>
+                <select value={fClass} onChange={e => setFClass(e.target.value)}>
+                  <option value="">전체</option>
+                  {Array.from({length:10},(_,i)=>i+1).map(c => <option key={c} value={c}>{c}반</option>)}
+                </select>
+              </div>
+              <div className={styles.filterField}>
+                <label>과목</label>
+                <select value={fSubject} onChange={e => { setFSubject(e.target.value); setFProject('') }}>
+                  <option value="">전체 과목</option>
+                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className={styles.filterField}>
+                <label>프로젝트</label>
+                <select value={fProject} onChange={e => setFProject(e.target.value)}>
+                  <option value="">전체</option>
+                  {projects.filter(p => !fSubject || p.subject_id === fSubject).map(p =>
+                    <option key={p.id} value={p.id}>{p.title}</option>)}
+                </select>
+              </div>
+              <div className={styles.filterField}>
+                <label>상태</label>
+                <select value={fStatus} onChange={e => setFStatus(e.target.value)}>
+                  <option value="">전체</option>
+                  <option value="submitted">제출</option>
+                  <option value="none">미제출</option>
+                </select>
+              </div>
+              <button className={styles.btnSearch} onClick={searchSubmissions}>조회</button>
+            </div>
+          </div>
+
+          {searched && (
+            <div className={styles.resultCard}>
+              <div className={styles.resultHeader}>
+                <div className={styles.resultInfo}>총 <strong>{filteredSubs.length}</strong>건</div>
+              </div>
+              {filteredSubs.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyIcon}>📭</div>
+                  <div className={styles.emptyText}>조건에 맞는 결과가 없습니다.</div>
+                </div>
+              ) : (
+                <table className={styles.subTable}>
+                  <thead>
+                    <tr>
+                      <th>학번</th><th>이름</th><th>과목</th><th>프로젝트</th>
+                      <th>상태</th><th>파일명</th><th>크기</th><th>제출일시</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSubs.map(s => (
+                      <tr key={s.id}>
+                        <td><span className={styles.studentNum}>{s.student_id}</span></td>
+                        <td>{s.student_name}</td>
+                        <td>{s.subject_name}</td>
+                        <td>{s.project_title}</td>
+                        <td>
+                          {s.submitted
+                            ? <span className={styles.badgeSubmitted}>제출</span>
+                            : <span className={styles.badgeNone}>미제출</span>}
+                        </td>
+                        <td><span className={styles.fileName}>{s.file_name || '—'}</span></td>
+                        <td><span className={styles.fileSize}>{s.file_size || '—'}</span></td>
+                        <td><span className={styles.submitDate}>{s.submitted_at || '—'}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Guidelines Pane ── */}
+      {dashTab === 'guidelines' && (
+        <div className={styles.glLayout}>
+          {/* Sidebar */}
+          <div className={styles.glSidebar}>
+            <div className={styles.glSidebarTitle}>과목 목록</div>
+            {subjects.length === 0 && (
+              <div className={styles.glEmptySidebar}>아직 과목이 없습니다.<br/>아래에서 추가하세요.</div>
+            )}
+            <div className={styles.subjectList}>
+              {subjects.map(s => (
+                <div key={s.id}
+                  className={`${styles.subjectItem} ${currentSubjectId === s.id && glView !== 'sidebar' ? styles.activeSubject : ''}`}
+                  onClick={() => { setCurrentSubjectId(s.id); setCurrentProjectId(null); setGlView('projlist') }}>
+                  <span className={styles.subjectItemName}>{s.name}</span>
+                  <span className={styles.subjectCount}>{projects.filter(p => p.subject_id === s.id).length}</span>
+                  <button className={styles.subjectDel} onClick={e => { e.stopPropagation(); deleteSubject(s.id) }}>✕</button>
+                </div>
+              ))}
+            </div>
+            <div className={styles.addSubjectRow}>
+              <input className={styles.addSubjectInput} value={newSubjectName}
+                onChange={e => setNewSubjectName(e.target.value)}
+                placeholder="과목명 입력"
+                onKeyDown={e => e.key === 'Enter' && addSubject()} />
+              <button className={styles.btnAddSubject} onClick={addSubject}>+ 추가</button>
+            </div>
+          </div>
+
+          {/* Right panel */}
+          <div>
+            {/* Project list */}
+            {(glView === 'projlist' || glView === 'editor') && currentSubjectId && (
+              <div className={styles.projListPanel} style={{ marginBottom: glView === 'editor' ? '1rem' : 0 }}>
+                <div className={styles.projListHeader}>
+                  <span className={styles.projListSubjectName}>
+                    {subjects.find(s => s.id === currentSubjectId)?.name}
+                    <span className={styles.projListBadge}>과목</span>
+                  </span>
+                  <button className={styles.btnBackSubject} onClick={() => { setGlView('sidebar'); setCurrentSubjectId(null) }}>← 목록</button>
+                </div>
+                <div className={styles.projCards}>
+                  {getSubjectProjects().length === 0 && (
+                    <div className={styles.projEmpty}>아직 프로젝트가 없습니다.<br/>아래에서 추가하세요.</div>
+                  )}
+                  {getSubjectProjects().map((p, i) => (
+                    <div key={p.id}
+                      className={`${styles.projCardItem} ${currentProjectId === p.id && glView === 'editor' ? styles.activeProjCard : ''}`}
+                      onClick={() => openEditor(p.id)}>
+                      <div className={styles.projCardIcon}>{SUBJECT_ICONS[i % SUBJECT_ICONS.length]}</div>
+                      <div className={styles.projCardInfo}>
+                        <div className={styles.projCardTitle}>{p.title}</div>
+                        <div className={styles.projCardMeta}>{p.stages.length}단계</div>
+                      </div>
+                      <button className={styles.projDelBtn} onClick={e => { e.stopPropagation(); deleteProject(p.id) }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.addProjRow}>
+                  <input className={styles.addProjInput} value={newProjName}
+                    onChange={e => setNewProjName(e.target.value)}
+                    placeholder="프로젝트 제목 입력"
+                    onKeyDown={e => e.key === 'Enter' && addProject()} />
+                  <button className={styles.btnAddProj} onClick={addProject}>+ 추가</button>
+                </div>
+              </div>
+            )}
+
+            {/* Editor */}
+            {glView === 'editor' && currentProjectId && (
+              <div className={styles.glEditor}>
+                <div className={styles.glEditorHeader}>
+                  <div className={styles.glEditorTitleGroup}>
+                    <div className={styles.glSubjectLabel}>{subjects.find(s => s.id === currentSubjectId)?.name}</div>
+                    <input className={styles.glTitleInput} value={editorTitle}
+                      onChange={e => setEditorTitle(e.target.value)} placeholder="프로젝트 제목" />
+                    <textarea className={styles.glDescInput} value={editorDesc}
+                      onChange={e => setEditorDesc(e.target.value)} placeholder="프로젝트 설명 (선택)" rows={2} />
+                  </div>
+                  <div className={styles.glHeaderActions}>
+                    <button className={styles.btnGlPreview} onClick={() => setPreviewOpen(true)}>👀 미리보기</button>
+                    <button className={styles.btnGlSave} onClick={saveGuideline}>💾 저장</button>
+                  </div>
+                </div>
+
+                <div className={styles.stagesSectionHeader}>
+                  <div className={styles.stagesSectionLabel}>
+                    진행 단계 <span>{editorStages.length}단계</span>
+                  </div>
+                  <button className={styles.btnAddStage} onClick={addStage}>+ 단계 추가</button>
+                </div>
+
+                <div className={styles.stagesList}>
+                  {editorStages.length === 0 && (
+                    <div className={styles.stagesEmpty}>아직 단계가 없습니다. <strong>+ 단계 추가</strong>를 눌러 시작하세요.</div>
+                  )}
+                  {editorStages.map((st, si) => (
+                    <div key={si} className={styles.stageCard}>
+                      <div className={styles.stageCardHead}>
+                        <div className={styles.stageBadge}>{si + 1}</div>
+                        <input className={styles.stageTitleInput} value={st.title}
+                          onChange={e => updateStageTitle(si, e.target.value)}
+                          placeholder={`${si + 1}단계 제목`} />
+                        <div className={styles.stageCardActions}>
+                          <button className={styles.stageMoveBtn} disabled={si === 0} onClick={() => moveStage(si, -1)}>↑</button>
+                          <button className={styles.stageMoveBtn} disabled={si === editorStages.length - 1} onClick={() => moveStage(si, 1)}>↓</button>
+                          <button className={styles.stageDelBtn} onClick={() => deleteStage(si)}>✕</button>
+                        </div>
+                      </div>
+                      <div className={styles.stageCardBody}>
+                        <div className={styles.itemsList}>
+                          {st.items.map((item, ii) => (
+                            <div key={ii} className={styles.itemRow}>
+                              <span className={`${styles.itemTypeBadge} ${item.type === 'q' ? styles.itemTypeQ : styles.itemTypeD}`}>
+                                {item.type === 'q' ? '질문' : '설명'}
+                              </span>
+                              <textarea className={styles.itemContentInput} value={item.content}
+                                onChange={e => updateItem(si, ii, e.target.value)}
+                                placeholder={item.type === 'q' ? '학생에게 물어볼 질문을 입력하세요' : '학생에게 전달할 설명을 입력하세요'}
+                                rows={2} />
+                              <button className={styles.itemDelBtn} onClick={() => deleteItem(si, ii)}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className={styles.addItemRow}>
+                          <button className={styles.btnAddItem} onClick={() => addItem(si, 'q')}>+ 질문</button>
+                          <button className={`${styles.btnAddItem} ${styles.btnAddDesc}`} onClick={() => addItem(si, 'd')}>+ 설명</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Placeholder when nothing selected */}
+            {glView === 'sidebar' && (
+              <div className={styles.glEditorPlaceholder}>
+                <div className={styles.phIcon}>📋</div>
+                <p>왼쪽에서 과목을 선택하거나<br/>새 과목을 추가하세요.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewOpen && (
+        <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setPreviewOpen(false) }}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <span className="modal-title">👀 학생에게 보이는 가이드라인 미리보기</span>
+              <button className="modal-close" onClick={() => setPreviewOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className={styles.previewSubjectBadge}>{subjects.find(s => s.id === currentSubjectId)?.name}</div>
+              <div className={styles.previewTitle}>{editorTitle || <span style={{color:'var(--text-hint)'}}>제목 없음</span>}</div>
+              {editorDesc && <div className={styles.previewDesc}>{editorDesc}</div>}
+              {editorStages.map((st, i) => (
+                <div key={i} className={styles.previewStage}>
+                  <div className={styles.previewStageHead}>
+                    <div className={styles.previewStageNum}>{i + 1}</div>
+                    <div className={styles.previewStageName}>{st.title || `${i + 1}단계`}</div>
+                  </div>
+                  {st.items.filter(it => it.content).map((it, ii) => (
+                    <div key={ii} className={styles.previewItem}>
+                      <span className={`${styles.previewItemBadge} ${it.type === 'q' ? styles.itemTypeQ : styles.itemTypeD}`}>
+                        {it.type === 'q' ? '질문' : '설명'}
+                      </span>
+                      <span className={styles.previewItemText}>{it.content}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      <div className={`toast ${toastVisible ? 'show' : ''}`}>{toast}</div>
+    </div>
+  )
+}

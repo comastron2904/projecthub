@@ -1,0 +1,112 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background: var(--bg);
+}
+.wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.header { text-align: center; margin-bottom: 2.5rem; }
+.logoLine { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 0.5rem; }
+.logoIcon {
+  width: 40px; height: 40px;
+  background: var(--text-main);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.siteTitle { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: var(--text-main); letter-spacing: -0.02em; }
+.siteSubtitle { font-size: 0.85rem; color: var(--text-sub); letter-spacing: 0.05em; }
+
+.tabSelector {
+  display: flex;
+  background: var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 1.5rem;
+  width: 420px;
+}
+.tabBtn {
+  flex: 1; padding: 0.55rem; border: none; background: none; cursor: pointer;
+  border-radius: 9px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 500; color: var(--text-sub); transition: all 0.2s;
+}
+.activeStudent { background: var(--student); color: white; }
+.activeTeacher { background: var(--teacher); color: white; }
+
+.card {
+  background: var(--card);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  padding: 2rem;
+  width: 420px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+}
+.cardHeader { margin-bottom: 1.5rem; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+  padding: 4px 10px; border-radius: 20px; margin-bottom: 0.75rem;
+}
+.badgeStudent { background: var(--student-light); color: var(--student); }
+.badgeTeacher { background: var(--teacher-light); color: var(--teacher); }
+.cardTitle { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; }
+.cardDesc { font-size: 0.83rem; color: var(--text-sub); line-height: 1.6; }
+
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--text-sub); margin-bottom: 0.4rem; }
+.field input {
+  width: 100%; padding: 0.7rem 0.9rem;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif;
+  color: var(--text-main); background: white; outline: none; transition: border-color 0.2s;
+}
+.field input:focus { border-color: var(--teacher-border); }
+.field input::placeholder { color: var(--text-hint); }
+
+.btnMain {
+  width: 100%; padding: 0.8rem; border: none; border-radius: 10px;
+  font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: all 0.18s; margin-top: 0.25rem; letter-spacing: 0.02em;
+}
+.btnStudent { background: var(--student); color: white; }
+.btnStudent:hover { background: #1e4029; transform: translateY(-1px); }
+.btnTeacher { background: var(--teacher); color: white; }
+.btnTeacher:hover { background: #112845; transform: translateY(-1px); }
+
+.errorMsg {
+  font-size: 0.78rem; color: var(--danger); background: var(--danger-light);
+  padding: 0.5rem 0.75rem; border-radius: 8px; margin-top: 0.75rem;
+}
+.noticeBox {
+  background: var(--student-light); border-left: 3px solid var(--student-border);
+  border-radius: 0 8px 8px 0; padding: 0.7rem 0.9rem;
+  font-size: 0.8rem; color: var(--student); line-height: 1.5; margin-top: 1rem;
+}
+.teacherNotice { background: var(--teacher-light); border-left-color: var(--teacher-border); color: var(--teacher); }
+
+.chooseBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+.chooseBtn {
+  padding: 1rem 0.75rem; border: 1.5px solid var(--border); border-radius: 12px;
+  background: white; cursor: pointer; text-align: center; transition: all 0.18s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+.chooseBtn:hover { border-color: var(--teacher-border); background: var(--teacher-light); }
+.cbIcon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+.cbLabel { font-size: 0.82rem; font-weight: 500; color: var(--text-main); }
+.cbSub { font-size: 0.72rem; color: var(--text-sub); margin-top: 2px; }
+
+.backLink {
+  font-size: 0.8rem; color: var(--text-hint); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1rem;
+  border: none; background: none; font-family: 'Noto Sans KR', sans-serif;
+}
+.backLink:hover { color: var(--teacher); }
+
+.footer { margin-top: 2rem; text-align: center; font-size: 0.78rem; color: var(--text-hint); }
