@@ -178,3 +178,10 @@
 .previewItem { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.5rem 0.65rem; background: #FAFAF8; border-radius: 8px; margin-bottom: 0.4rem; }
 .previewItemBadge { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-top: 1px; }
 .previewItemText { font-size: 0.85rem; color: var(--text-main); line-height: 1.5; }
+
+/* Download buttons */
+.btnDlAll { padding: 0.45rem 1rem; background: var(--teacher); color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnDlAll:hover { background: #112845; }
+.btnDlSingle { padding: 0.32rem 0.7rem; background: var(--teacher-light); color: var(--teacher); border: 1.5px solid var(--teacher-border); border-radius: 7px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
+.btnDlSingle:hover { background: var(--teacher); color: white; }
+.dlDisabled { font-size: 0.8rem; color: var(--text-hint); }
