@@ -179,6 +179,113 @@ export default function TeacherDashboard() {
     setSearched(true)
   }
 
+  /* ── Download: HTML 보고서 생성 ── */
+  function escHtml(str: string) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+
+  async function buildReportHtml(s: Submission) {
+    const subj = subjects.find(sub => sub.id === s.subject_id)
+    const proj = projects.find(p => p.id === s.project_id)
+
+    // answers는 submissions 테이블에 이미 있음
+    const { data } = await supabase.from('submissions')
+      .select('answers').eq('id', s.id).single()
+    const answers: Record<string, string> = data?.answers || {}
+
+    const stages = proj?.stages || []
+    const totalItems = stages.reduce((n: number, st: Stage) => n + st.items.length, 0)
+    const answeredItems = Object.values(answers).filter(v => v && (v as string).trim()).length
+    const pct = totalItems > 0 ? Math.round(answeredItems / totalItems * 100) : 0
+    const subjName = subj?.name || s.subject_name
+    const projTitle = proj?.title || s.project_title
+    const projDesc = proj?.description || ''
+
+    const stagesHtml = stages.map((st: Stage, si: number) => {
+      const itemsHtml = st.items.map((item: StageItem, ii: number) => {
+        const key = `${si}_${ii}`
+        const ans = (answers[key] || '').trim()
+        const isQ = item.type === 'q'
+        const badgeColor = isQ ? '#3B5BDB' : '#E67700'
+        const badgeBg = isQ ? '#EEF3FF' : '#FFF3E0'
+        return `<div style="margin-bottom:1.25rem;">
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+            <span style="flex-shrink:0;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:12px;background:${badgeBg};color:${badgeColor};margin-top:2px;">${isQ ? '질문' : '설명'}</span>
+            <span style="font-size:0.9rem;font-weight:600;color:#1A1814;line-height:1.5;">${escHtml(item.content || '')}</span>
+          </div>
+          <div style="margin-left:38px;padding:0.7rem 1rem;background:${ans ? '#F8F7F4' : '#FAFAFA'};border:1.5px solid ${ans ? '#D8D4CC' : '#EBEBEB'};border-radius:10px;font-size:0.88rem;color:${ans ? '#1A1814' : '#AAAAAA'};line-height:1.7;white-space:pre-wrap;min-height:44px;">${ans ? escHtml(ans) : '(미작성)'}</div>
+        </div>`
+      }).join('')
+      return `<div style="margin-bottom:1.25rem;border:1.5px solid #E4E0D8;border-radius:14px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:10px;padding:0.85rem 1.1rem;background:#FDFCFB;border-bottom:1px solid #E4E0D8;">
+          <div style="width:28px;height:28px;border-radius:9px;background:#2D5A3D;color:white;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${si + 1}</div>
+          <span style="font-size:0.95rem;font-weight:700;color:#1A1814;">${escHtml(st.title || `${si + 1}단계`)}</span>
+        </div>
+        <div style="padding:1.1rem 1.1rem 0.1rem;">${itemsHtml}</div>
+      </div>`
+    }).join('')
+
+    return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<title>${escHtml(subjName)} · ${escHtml(projTitle)} — ${escHtml(s.student_name)} 제출보고서</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans KR',sans-serif;background:#F7F5F0;padding:2.5rem 1rem;color:#1A1814;}.page{max-width:720px;margin:0 auto;}.report-header{background:white;border:1.5px solid #E4E0D8;border-radius:18px;padding:2rem;margin-bottom:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);}.subj-badge{display:inline-block;background:#EAF3DE;color:#2D5A3D;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:0.6rem;}.proj-title{font-size:1.5rem;font-weight:700;color:#1A1814;margin-bottom:0.4rem;}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:1rem;}.meta-item{background:#F7F5F0;border-radius:10px;padding:0.65rem 0.85rem;}.meta-label{font-size:0.68rem;font-weight:700;color:#A8A49E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:2px;}.meta-value{font-size:0.88rem;font-weight:600;color:#1A1814;}.progress-row{margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #E4E0D8;}.progress-label{display:flex;justify-content:space-between;font-size:0.78rem;color:#6B6760;margin-bottom:6px;}.progress-bar{height:6px;background:#E4E0D8;border-radius:6px;overflow:hidden;}.progress-fill{height:100%;background:#2D5A3D;border-radius:6px;}.print-footer{text-align:center;font-size:0.75rem;color:#A8A49E;margin-top:2rem;padding-top:1rem;border-top:1px solid #E4E0D8;}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}body{background:#F7F5F0!important;}.no-print{display:none!important;}}</style>
+</head><body><div class="page">
+  <div class="report-header">
+    <div class="subj-badge">${escHtml(subjName)}</div>
+    <div class="proj-title">${escHtml(projTitle)}</div>
+    ${projDesc ? `<div style="font-size:0.85rem;color:#6B6760;line-height:1.7;margin-bottom:0.5rem;">${escHtml(projDesc)}</div>` : ''}
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-label">학생</div><div class="meta-value">${escHtml(s.student_name)}</div></div>
+      <div class="meta-item"><div class="meta-label">학번</div><div class="meta-value">${escHtml(s.student_id)}</div></div>
+      <div class="meta-item"><div class="meta-label">과목</div><div class="meta-value">${escHtml(subjName)}</div></div>
+      <div class="meta-item"><div class="meta-label">제출 일시</div><div class="meta-value">${escHtml(s.submitted_at || '—')}</div></div>
+    </div>
+    <div class="progress-row">
+      <div class="progress-label"><span>답변 완성도</span><span>${answeredItems} / ${totalItems}개 (${pct}%)</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+  </div>
+  <div>${stagesHtml || '<div style="text-align:center;padding:3rem;color:#A8A49E;">가이드라인 정보가 없습니다.</div>'}</div>
+  <div class="print-footer">ProjectHub · ${escHtml(subjName)} › ${escHtml(projTitle)} · ${escHtml(s.student_name)} (${escHtml(s.student_id)}) · ${escHtml(s.submitted_at || '')}</div>
+</div>
+<div class="no-print" style="position:fixed;bottom:1.5rem;right:1.5rem;display:flex;gap:0.5rem;">
+  <button onclick="window.print()" style="padding:0.6rem 1.1rem;background:#1A1814;color:white;border:none;border-radius:10px;font-size:0.85rem;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;">🖨 인쇄하기</button>
+  <button onclick="window.close()" style="padding:0.6rem 1.1rem;background:white;color:#6B6760;border:1.5px solid #E4E0D8;border-radius:10px;font-size:0.85rem;font-family:'Noto Sans KR',sans-serif;cursor:pointer;">✕ 닫기</button>
+</div>
+</body></html>`
+  }
+
+  function triggerDownload(html: string, filename: string) {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = filename
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  async function downloadSingle(s: Submission) {
+    const html = await buildReportHtml(s)
+    const filename = `${s.student_id}_${s.student_name}_${s.subject_name}_${s.project_title}.html`
+      .replace(/[\\/:*?"<>|]/g, '_')
+    triggerDownload(html, filename)
+    showToast(`📥 ${s.student_name} 보고서를 다운로드했습니다.`)
+  }
+
+  async function downloadAll() {
+    const list = filteredSubs.filter(s => s.submitted)
+    if (list.length === 0) { showToast('다운로드할 제출 파일이 없습니다.'); return }
+    showToast(`📥 ${list.length}개 보고서를 다운로드합니다.`)
+    for (let i = 0; i < list.length; i++) {
+      await new Promise(r => setTimeout(r, i * 350))
+      const html = await buildReportHtml(list[i])
+      const filename = `${list[i].student_id}_${list[i].student_name}_${list[i].subject_name}_${list[i].project_title}.html`
+        .replace(/[\\/:*?"<>|]/g, '_')
+      triggerDownload(html, filename)
+    }
+  }
+
   function getSubjectProjects() { return projects.filter(p => p.subject_id === currentSubjectId) }
 
   if (!teacher) return <div className="loading-center">로딩 중...</div>
@@ -270,6 +377,9 @@ export default function TeacherDashboard() {
             <div className={styles.resultCard}>
               <div className={styles.resultHeader}>
                 <div className={styles.resultInfo}>총 <strong>{filteredSubs.length}</strong>건</div>
+                {filteredSubs.some(s => s.submitted) && (
+                  <button className={styles.btnDlAll} onClick={downloadAll}>⬇ 전체 다운로드</button>
+                )}
               </div>
               {filteredSubs.length === 0 ? (
                 <div className={styles.emptyState}>
@@ -281,7 +391,7 @@ export default function TeacherDashboard() {
                   <thead>
                     <tr>
                       <th>학번</th><th>이름</th><th>과목</th><th>프로젝트</th>
-                      <th>상태</th><th>파일명</th><th>크기</th><th>제출일시</th>
+                      <th>상태</th><th>파일명</th><th>크기</th><th>제출일시</th><th>다운로드</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -299,6 +409,11 @@ export default function TeacherDashboard() {
                         <td><span className={styles.fileName}>{s.file_name || '—'}</span></td>
                         <td><span className={styles.fileSize}>{s.file_size || '—'}</span></td>
                         <td><span className={styles.submitDate}>{s.submitted_at || '—'}</span></td>
+                        <td>
+                          {s.submitted
+                            ? <button className={styles.btnDlSingle} onClick={() => downloadSingle(s)}>⬇ 다운로드</button>
+                            : <span className={styles.dlDisabled}>—</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
