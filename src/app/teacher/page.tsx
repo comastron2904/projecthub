@@ -13,7 +13,7 @@ interface Submission {
   id: number; year: number; grade: number; cls: number; no: number;
   student_id: string; student_name: string; subject_id: string; subject_name: string;
   project_id: string; project_title: string; file_name: string | null;
-  file_size: string | null; submitted_at: string | null; submitted: boolean;
+  file_size: string | null; file_path: string | null; submitted_at: string | null; submitted: boolean;
 }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
@@ -266,11 +266,28 @@ export default function TeacherDashboard() {
   }
 
   async function downloadSingle(s: Submission) {
+    // 워크시트 HTML 다운로드
     const html = await buildReportHtml(s)
     const filename = `${s.student_id}_${s.student_name}_${s.subject_name}_${s.project_title}.html`
       .replace(/[\\/:*?"<>|]/g, '_')
     triggerDownload(html, filename)
     showToast(`📥 ${s.student_name} 보고서를 다운로드했습니다.`)
+  }
+
+  async function downloadStudentFile(s: Submission) {
+    if (!s.file_path) return
+    const { data, error } = await supabase.storage
+      .from('projecthub-files')
+      .download(s.file_path)
+    if (error || !data) { showToast('❌ 파일을 불러올 수 없습니다.'); return }
+    const url = URL.createObjectURL(data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = s.file_name || '첨부파일'
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    showToast(`📎 ${s.file_name} 다운로드 완료`)
   }
 
   async function downloadAll() {
@@ -378,7 +395,9 @@ export default function TeacherDashboard() {
               <div className={styles.resultHeader}>
                 <div className={styles.resultInfo}>총 <strong>{filteredSubs.length}</strong>건</div>
                 {filteredSubs.some(s => s.submitted) && (
-                  <button className={styles.btnDlAll} onClick={downloadAll}>⬇ 전체 다운로드</button>
+                  <button className={styles.btnDlAll} onClick={downloadAll}>
+                    <span className={styles.btnDlAllIcon}>⬇</span> 워크시트 전체 다운로드
+                  </button>
                 )}
               </div>
               {filteredSubs.length === 0 ? (
@@ -391,27 +410,37 @@ export default function TeacherDashboard() {
                   <thead>
                     <tr>
                       <th>학번</th><th>이름</th><th>과목</th><th>프로젝트</th>
-                      <th>상태</th><th>파일명</th><th>크기</th><th>제출일시</th><th>다운로드</th>
+                      <th>상태</th><th>제출일시</th><th>워크시트</th><th>첨부파일</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredSubs.map(s => (
                       <tr key={s.id}>
                         <td><span className={styles.studentNum}>{s.student_id}</span></td>
-                        <td>{s.student_name}</td>
+                        <td><strong>{s.student_name}</strong></td>
                         <td>{s.subject_name}</td>
                         <td>{s.project_title}</td>
                         <td>
                           {s.submitted
-                            ? <span className={styles.badgeSubmitted}>제출</span>
+                            ? <span className={styles.badgeSubmitted}>✓ 제출</span>
                             : <span className={styles.badgeNone}>미제출</span>}
                         </td>
-                        <td><span className={styles.fileName}>{s.file_name || '—'}</span></td>
-                        <td><span className={styles.fileSize}>{s.file_size || '—'}</span></td>
                         <td><span className={styles.submitDate}>{s.submitted_at || '—'}</span></td>
                         <td>
                           {s.submitted
-                            ? <button className={styles.btnDlSingle} onClick={() => downloadSingle(s)}>⬇ 다운로드</button>
+                            ? <button className={styles.btnDlWorksheet} onClick={() => downloadSingle(s)}>
+                                📄 보고서
+                              </button>
+                            : <span className={styles.dlDisabled}>—</span>}
+                        </td>
+                        <td>
+                          {s.file_path
+                            ? <button className={styles.btnDlFile} onClick={() => downloadStudentFile(s)}>
+                                📎 {s.file_name
+                                  ? (s.file_name.length > 12 ? s.file_name.slice(0, 12) + '…' : s.file_name)
+                                  : '파일'}
+                                {s.file_size && <span className={styles.fileSizeInBtn}>{s.file_size}</span>}
+                              </button>
                             : <span className={styles.dlDisabled}>—</span>}
                         </td>
                       </tr>
