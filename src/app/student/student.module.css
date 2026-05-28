@@ -88,3 +88,18 @@
 .btnSubmit:hover { background: #1e4029; transform: translateY(-1px); }
 
 .emptyState { text-align: center; padding: 3rem 1rem; color: var(--text-hint); font-size: 0.88rem; line-height: 1.8; }
+
+/* Submitted / editing banners */
+.submittedBanner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--success-light); border: 1.5px solid var(--student-border); border-radius: 12px; padding: 0.9rem 1.25rem; margin-bottom: 1rem; }
+.submittedLeft { display: flex; flex-direction: column; gap: 3px; font-size: 0.88rem; color: var(--success); font-weight: 600; }
+.submittedInfo { font-size: 0.78rem; font-weight: 400; color: var(--text-sub); }
+.btnReEdit { flex-shrink: 0; padding: 0.42rem 0.9rem; background: white; color: var(--student); border: 1.5px solid var(--student-border); border-radius: 8px; font-size: 0.8rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.15s; }
+.btnReEdit:hover { background: var(--student); color: white; }
+
+.editingBanner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: #FFF8E6; border: 1.5px solid #F5C842; border-radius: 12px; padding: 0.9rem 1.25rem; margin-bottom: 1rem; font-size: 0.86rem; color: #7A5900; }
+.btnCancelEdit { flex-shrink: 0; padding: 0.38rem 0.8rem; background: white; color: var(--text-sub); border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.78rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnCancelEdit:hover { border-color: var(--danger); color: var(--danger); }
+
+.submitFormEditing { border-color: #F5C842 !important; background: #FFFDF0 !important; }
+.btnResubmit { background: #C25E00 !important; }
+.btnResubmit:hover { background: #9A4A00 !important; }
