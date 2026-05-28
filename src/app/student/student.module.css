@@ -79,10 +79,11 @@
 /* Submit form */
 .submitForm { background: var(--card); border-radius: 16px; border: 1.5px solid var(--student-border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
 .submitFormTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem; }
-.fileUploadRow { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
-.fileLabel { padding: 0.5rem 1rem; background: white; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.83rem; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; color: var(--text-sub); }
-.fileLabel:hover { border-color: var(--student-border); color: var(--student); }
-.fileName { font-size: 0.8rem; color: var(--text-sub); }
+.fileUploadRow { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.fileLabel { display: inline-flex; align-items: center; gap: 6px; padding: 0.5rem 1rem; background: white; border: 1.5px dashed var(--border); border-radius: 9px; font-size: 0.83rem; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; color: var(--text-sub); transition: all 0.15s; }
+.fileLabel:hover { border-color: var(--student-border); color: var(--student); background: var(--student-light); }
+.fileSelected { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--student); font-weight: 600; background: var(--student-light); padding: 0.3rem 0.7rem; border-radius: 7px; border: 1px solid var(--student-border); }
+.fileHint { font-size: 0.78rem; color: var(--text-hint); }
 .btnSubmit { width: 100%; padding: 0.85rem; background: var(--student); color: white; border: none; border-radius: 10px; font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.18s; }
 .btnSubmit:hover { background: #1e4029; transform: translateY(-1px); }
 
