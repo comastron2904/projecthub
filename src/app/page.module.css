@@ -1,112 +1,261 @@
-.page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem 1rem;
-  background: var(--bg);
-}
-.wrapper {
+.dashPage {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
 }
-.header { text-align: center; margin-bottom: 2.5rem; }
-.logoLine { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 0.5rem; }
-.logoIcon {
-  width: 40px; height: 40px;
-  background: var(--text-main);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-}
-.siteTitle { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: var(--text-main); letter-spacing: -0.02em; }
-.siteSubtitle { font-size: 0.85rem; color: var(--text-sub); letter-spacing: 0.05em; }
 
-.tabSelector {
-  display: flex;
-  background: var(--border);
-  border-radius: 12px;
-  padding: 4px;
-  margin-bottom: 1.5rem;
-  width: 420px;
+/* Topbar */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.dashLogo { display: flex; align-items: center; gap: 8px; }
+.logoIcon { width: 32px; height: 32px; border-radius: 8px; background: var(--teacher); display: flex; align-items: center; justify-content: center; }
+.dashSiteName { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
+.dashUser { display: flex; align-items: center; gap: 10px; }
+.dashUsername { font-size: 0.83rem; color: var(--text-sub); }
+.btnLogout {
+  padding: 0.4rem 0.9rem; border: 1.5px solid var(--border); border-radius: 8px;
+  background: white; font-size: 0.8rem; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; color: var(--text-sub); transition: all 0.15s;
 }
-.tabBtn {
-  flex: 1; padding: 0.55rem; border: none; background: none; cursor: pointer;
-  border-radius: 9px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif;
-  font-weight: 500; color: var(--text-sub); transition: all 0.2s;
-}
-.activeStudent { background: var(--student); color: white; }
-.activeTeacher { background: var(--teacher); color: white; }
+.btnLogout:hover { border-color: var(--danger); color: var(--danger); }
 
-.card {
-  background: var(--card);
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  padding: 2rem;
-  width: 420px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+/* Tabs */
+.dashTabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--border); border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; }
+.dashTab {
+  padding: 0.6rem 1rem; border: none; background: none; cursor: pointer; border-radius: 9px;
+  font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500;
+  color: var(--text-sub); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.cardHeader { margin-bottom: 1.5rem; }
-.badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
-  padding: 4px 10px; border-radius: 20px; margin-bottom: 0.75rem;
-}
-.badgeStudent { background: var(--student-light); color: var(--student); }
-.badgeTeacher { background: var(--teacher-light); color: var(--teacher); }
-.cardTitle { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; }
-.cardDesc { font-size: 0.83rem; color: var(--text-sub); line-height: 1.6; }
+.activeTab { background: var(--teacher); color: white; box-shadow: 0 2px 8px rgba(26,58,92,0.25); }
 
-.field { margin-bottom: 1rem; }
-.field label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--text-sub); margin-bottom: 0.4rem; }
-.field input {
-  width: 100%; padding: 0.7rem 0.9rem;
-  border: 1.5px solid var(--border); border-radius: 10px;
-  font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif;
-  color: var(--text-main); background: white; outline: none; transition: border-color 0.2s;
-}
-.field input:focus { border-color: var(--teacher-border); }
-.field input::placeholder { color: var(--text-hint); }
+/* Section title */
+.sectionTitle { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem; }
 
-.btnMain {
-  width: 100%; padding: 0.8rem; border: none; border-radius: 10px;
-  font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
-  cursor: pointer; transition: all 0.18s; margin-top: 0.25rem; letter-spacing: 0.02em;
+/* Filter */
+.filterCard { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.filterRow { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+.filterField { flex: 1; min-width: 0; }
+.filterField label { font-size: 0.78rem; font-weight: 500; color: var(--text-sub); display: block; margin-bottom: 0.35rem; }
+.filterField select {
+  width: 100%; padding: 0.62rem 0.8rem; border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main);
+  background: white; outline: none; cursor: pointer;
 }
-.btnStudent { background: var(--student); color: white; }
-.btnStudent:hover { background: #1e4029; transform: translateY(-1px); }
-.btnTeacher { background: var(--teacher); color: white; }
-.btnTeacher:hover { background: #112845; transform: translateY(-1px); }
+.filterField select:focus { border-color: var(--teacher-border); }
+.btnSearch {
+  flex-shrink: 0; padding: 0.65rem 1.4rem; background: var(--teacher); color: white; border: none;
+  border-radius: 9px; font-size: 0.9rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s; height: 42px;
+}
+.btnSearch:hover { background: #112845; }
 
-.errorMsg {
-  font-size: 0.78rem; color: var(--danger); background: var(--danger-light);
-  padding: 0.5rem 0.75rem; border-radius: 8px; margin-top: 0.75rem;
-}
-.noticeBox {
-  background: var(--student-light); border-left: 3px solid var(--student-border);
-  border-radius: 0 8px 8px 0; padding: 0.7rem 0.9rem;
-  font-size: 0.8rem; color: var(--student); line-height: 1.5; margin-top: 1rem;
-}
-.teacherNotice { background: var(--teacher-light); border-left-color: var(--teacher-border); color: var(--teacher); }
+/* Result */
+.resultCard { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.resultHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+.resultInfo { font-size: 0.83rem; color: var(--text-sub); }
+.resultInfo strong { color: var(--text-main); font-weight: 700; }
+.subTable { width: 100%; border-collapse: collapse; }
+.subTable th { font-size: 0.76rem; font-weight: 700; color: var(--text-hint); text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+.subTable td { font-size: 0.85rem; color: var(--text-main); padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border); }
+.subTable tr:last-child td { border-bottom: none; }
+.subTable tr:hover td { background: #fafaf8; }
+.studentNum { font-size: 0.78rem; color: var(--text-sub); font-family: monospace; }
+.fileName { color: var(--teacher); font-weight: 500; font-size: 0.83rem; }
+.fileSize { font-size: 0.76rem; color: var(--text-hint); }
+.submitDate { font-size: 0.78rem; color: var(--text-sub); }
+.badgeSubmitted { background: var(--success-light); color: var(--success); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.badgeNone { background: #F1EFE8; color: var(--text-hint); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.emptyState { text-align: center; padding: 3rem 1rem; color: var(--text-hint); }
+.emptyIcon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.emptyText { font-size: 0.88rem; }
 
-.chooseBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
-.chooseBtn {
-  padding: 1rem 0.75rem; border: 1.5px solid var(--border); border-radius: 12px;
-  background: white; cursor: pointer; text-align: center; transition: all 0.18s;
-  font-family: 'Noto Sans KR', sans-serif;
-}
-.chooseBtn:hover { border-color: var(--teacher-border); background: var(--teacher-light); }
-.cbIcon { font-size: 1.5rem; margin-bottom: 0.4rem; }
-.cbLabel { font-size: 0.82rem; font-weight: 500; color: var(--text-main); }
-.cbSub { font-size: 0.72rem; color: var(--text-sub); margin-top: 2px; }
+/* Guidelines layout */
+.glLayout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start; }
+.glSidebar { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.25rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.glSidebarTitle { font-size: 0.78rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.07em; margin-bottom: 0.85rem; text-transform: uppercase; }
+.glEmptySidebar { text-align: center; padding: 1.5rem 0.5rem; color: var(--text-hint); font-size: 0.8rem; line-height: 1.6; }
+.subjectList { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+.subjectItem { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; border-radius: 10px; cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; gap: 6px; }
+.subjectItem:hover { background: var(--accent-light); border-color: var(--accent-border); }
+.activeSubject { background: var(--accent-light); border-color: var(--accent-border); }
+.subjectItemName { font-size: 0.88rem; font-weight: 500; color: var(--text-main); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subjectCount { font-size: 0.68rem; color: var(--text-hint); background: #F1EFE8; padding: 1px 7px; border-radius: 20px; flex-shrink: 0; }
+.subjectDel { background: none; border: none; cursor: pointer; font-size: 0.78rem; color: var(--text-hint); padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+.subjectDel:hover { background: var(--danger-light); color: var(--danger); }
+.addSubjectRow { display: flex; gap: 0.5rem; min-width: 0; overflow: hidden; }
+.addSubjectInput { flex: 1; min-width: 0; width: 0; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addSubjectInput:focus { border-color: var(--accent-border); }
+.addSubjectInput::placeholder { color: var(--text-hint); }
+.btnAddSubject { padding: 0.55rem 0.75rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.btnAddSubject:hover { background: #6344a8; }
 
-.backLink {
-  font-size: 0.8rem; color: var(--text-hint); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1rem;
-  border: none; background: none; font-family: 'Noto Sans KR', sans-serif;
-}
-.backLink:hover { color: var(--teacher); }
+/* Project list */
+.projListPanel { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.projListHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border); }
+.projListSubjectName { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.projListBadge { font-size: 0.7rem; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 2px 9px; border-radius: 20px; margin-left: 6px; }
+.btnBackSubject { display: inline-flex; align-items: center; gap: 4px; padding: 0.35rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; font-size: 0.78rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-sub); cursor: pointer; }
+.btnBackSubject:hover { border-color: var(--teacher-border); color: var(--teacher); }
+.projCards { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+.projCardItem { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border: 1.5px solid var(--border); border-radius: 11px; background: white; cursor: pointer; transition: all 0.15s; }
+.projCardItem:hover { border-color: var(--accent-border); background: var(--accent-light); }
+.activeProjCard { border-color: var(--accent); background: var(--accent-light); }
+.projCardIcon { width: 34px; height: 34px; border-radius: 9px; background: var(--accent-light); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.projCardInfo { flex: 1; min-width: 0; }
+.projCardTitle { font-size: 0.88rem; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projCardMeta { font-size: 0.72rem; color: var(--text-hint); margin-top: 1px; }
+.projDelBtn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 0.72rem; color: var(--text-hint); display: flex; align-items: center; justify-content: center; }
+.projDelBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.projEmpty { text-align: center; padding: 2rem 1rem; color: var(--text-hint); font-size: 0.82rem; line-height: 1.7; border: 1.5px dashed var(--border); border-radius: 11px; margin-bottom: 1rem; }
+.addProjRow { display: flex; gap: 0.5rem; }
+.addProjInput { flex: 1; padding: 0.55rem 0.7rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addProjInput:focus { border-color: var(--accent-border); }
+.addProjInput::placeholder { color: var(--text-hint); }
+.btnAddProj { padding: 0.55rem 0.75rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
+.btnAddProj:hover { background: #6344a8; }
 
-.footer { margin-top: 2rem; text-align: center; font-size: 0.78rem; color: var(--text-hint); }
+/* Editor */
+.glEditor { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.glEditorPlaceholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; color: var(--text-hint); gap: 0.75rem; background: var(--card); border-radius: 16px; border: 1px solid var(--border); }
+.phIcon { font-size: 2.8rem; }
+.glEditorPlaceholder p { font-size: 0.88rem; text-align: center; line-height: 1.7; }
+.glEditorHeader { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); gap: 1rem; }
+.glEditorTitleGroup { flex: 1; }
+.glSubjectLabel { font-size: 0.72rem; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.3rem; }
+.glTitleInput { width: 100%; border: none; font-size: 1.15rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; background: transparent; padding: 0; }
+.glTitleInput::placeholder { color: var(--text-hint); font-weight: 400; }
+.glDescInput { width: 100%; border: none; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-sub); outline: none; background: transparent; padding: 0; margin-top: 0.4rem; resize: none; line-height: 1.6; }
+.glDescInput::placeholder { color: var(--text-hint); }
+.glHeaderActions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.btnGlSave { padding: 0.5rem 1.1rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.83rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnGlSave:hover { background: #6344a8; }
+.btnGlPreview { padding: 0.5rem 1rem; background: white; color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 9px; font-size: 0.83rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnGlPreview:hover { background: var(--accent-light); }
+
+/* Stages */
+.stagesSectionHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.stagesSectionLabel { font-size: 0.9rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 7px; }
+.stagesSectionLabel span { background: var(--accent-light); color: var(--accent); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.btnAddStage { padding: 0.4rem 0.85rem; background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 8px; font-size: 0.8rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnAddStage:hover { background: var(--accent); color: white; }
+.stagesList { display: flex; flex-direction: column; gap: 0.85rem; }
+.stagesEmpty { text-align: center; padding: 2rem 1rem; color: var(--text-hint); font-size: 0.85rem; border: 1.5px dashed var(--border); border-radius: 12px; }
+.stageCard { border: 1.5px solid var(--border); border-radius: 13px; background: #FDFCFB; overflow: hidden; }
+.stageCard:hover { border-color: var(--accent-border); }
+.stageCardHead { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: white; border-bottom: 1px solid var(--border); }
+.stageBadge { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: white; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stageTitleInput { flex: 1; border: none; font-size: 0.9rem; font-weight: 600; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; background: transparent; }
+.stageTitleInput::placeholder { color: var(--text-hint); font-weight: 400; }
+.stageCardActions { display: flex; gap: 0.3rem; margin-left: auto; }
+.stageMoveBtn, .stageDelBtn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 0.75rem; color: var(--text-hint); display: flex; align-items: center; justify-content: center; }
+.stageMoveBtn:hover { border-color: var(--teacher-border); color: var(--teacher); background: var(--teacher-light); }
+.stageDelBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.stageMoveBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.stageCardBody { padding: 0.85rem 1rem; }
+.itemsList { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.65rem; }
+.itemRow { display: flex; gap: 0.5rem; align-items: flex-start; }
+.itemTypeBadge { flex-shrink: 0; margin-top: 0.45rem; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 12px; }
+.itemTypeQ { background: #EEF3FF; color: #3B5BDB; }
+.itemTypeD { background: #FFF3E0; color: #E67700; }
+.itemContentInput { flex: 1; padding: 0.5rem 0.65rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; resize: vertical; line-height: 1.5; }
+.itemContentInput:focus { border-color: var(--accent-border); }
+.itemDelBtn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 0.72rem; color: var(--text-hint); flex-shrink: 0; margin-top: 0.35rem; }
+.itemDelBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+.addItemRow { display: flex; gap: 0.5rem; }
+.btnAddItem { padding: 0.38rem 0.75rem; background: #EEF3FF; color: #3B5BDB; border: 1.5px solid #C5D3F5; border-radius: 8px; font-size: 0.78rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnAddItem:hover { background: #3B5BDB; color: white; }
+.btnAddDesc { background: #FFF3E0; color: #E67700; border-color: #F8D4A0; }
+.btnAddDesc:hover { background: #E67700; color: white; }
+
+/* Preview modal content */
+.previewSubjectBadge { font-size: 0.72rem; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 3px 10px; border-radius: 20px; display: inline-block; margin-bottom: 0.5rem; }
+.previewTitle { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.4rem; }
+.previewDesc { font-size: 0.85rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 1rem; }
+.previewStage { margin-bottom: 1rem; }
+.previewStageHead { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.previewStageNum { width: 24px; height: 24px; border-radius: 8px; background: var(--accent); color: white; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.previewStageName { font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
+.previewItem { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.5rem 0.65rem; background: #FAFAF8; border-radius: 8px; margin-bottom: 0.4rem; }
+.previewItemBadge { flex-shrink: 0; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 12px; margin-top: 1px; }
+.previewItemText { font-size: 0.85rem; color: var(--text-main); line-height: 1.5; }
+
+/* Download buttons */
+.btnDlAll { display: inline-flex; align-items: center; gap: 6px; padding: 0.5rem 1.1rem; background: var(--teacher); color: white; border: none; border-radius: 9px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(26,58,92,0.2); }
+.btnDlAll:hover { background: #112845; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,92,0.3); }
+.btnDlAllIcon { font-size: 0.9rem; }
+.btnDlWorksheet { display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.65rem; background: var(--teacher-light); color: var(--teacher); border: 1.5px solid var(--teacher-border); border-radius: 7px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+.btnDlWorksheet:hover { background: var(--teacher); color: white; border-color: var(--teacher); }
+.btnDlFile { display: inline-flex; align-items: center; gap: 4px; padding: 0.3rem 0.65rem; background: #FFF3E0; color: #C25E00; border: 1.5px solid #F8C97A; border-radius: 7px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.15s; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.btnDlFile:hover { background: #E67700; color: white; border-color: #E67700; }
+.fileSizeInBtn { font-size: 0.65rem; font-weight: 400; opacity: 0.75; margin-left: 2px; }
+.dlDisabled { font-size: 0.8rem; color: var(--text-hint); }
+
+/* File dropdown */
+.btnDlFileActive { background: var(--teacher) !important; color: white !important; border-color: var(--teacher) !important; }
+.fileDropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 200; background: white; border: 1.5px solid var(--border); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 280px; overflow: hidden; }
+.fileDropdownHeader { font-size: 0.72rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.06em; text-transform: uppercase; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); background: #FAFAF8; }
+.fileDropdownEmpty { font-size: 0.82rem; color: var(--text-hint); text-align: center; padding: 1rem; }
+.fileDropdownItem { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 1rem; cursor: pointer; transition: background 0.12s; border-bottom: 1px solid #F5F3EE; gap: 0.5rem; }
+.fileDropdownItem:last-child { border-bottom: none; }
+.fileDropdownItem:hover { background: var(--teacher-light); }
+.fileDropdownItemLeft { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.fileDropdownIcon { font-size: 1.1rem; flex-shrink: 0; }
+.fileDropdownName { font-size: 0.82rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.fileDropdownMeta { font-size: 0.7rem; color: var(--text-hint); margin-top: 1px; }
+.fileDropdownDl { font-size: 0.85rem; color: var(--teacher); flex-shrink: 0; font-weight: 700; }
+
+/* ── Forum styles ── */
+.forumListHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.btnNewForum { padding: 0.5rem 1.1rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.85rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnNewForum:hover { background: #6344a8; }
+.forumEmpty { text-align: center; padding: 4rem 1rem; color: var(--text-hint); font-size: 0.88rem; line-height: 2; }
+.forumEmpty div { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.forumCards { display: flex; flex-direction: column; gap: 0.75rem; }
+.forumCard { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
+.forumCardLeft { flex: 1; min-width: 0; }
+.forumCardTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.forumCardMeta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-hint); flex-wrap: wrap; }
+.forumActiveBadge { background: var(--success-light); color: var(--success); font-weight: 700; padding: 1px 8px; border-radius: 20px; }
+.forumInactiveBadge { background: #F1EFE8; color: var(--text-hint); font-weight: 700; padding: 1px 8px; border-radius: 20px; }
+.forumCardActions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.btnCopyLink { padding: 0.38rem 0.75rem; background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
+.btnCopyLink:hover { background: var(--accent); color: white; }
+.btnEditForum { padding: 0.38rem 0.75rem; background: var(--teacher-light); color: var(--teacher); border: 1.5px solid var(--teacher-border); border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnEditForum:hover { background: var(--teacher); color: white; }
+.btnDelForum { padding: 0.38rem 0.75rem; background: var(--danger-light); color: var(--danger); border: 1.5px solid #F5BCBC; border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnDelForum:hover { background: var(--danger); color: white; }
+
+.forumEditor { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.forumEditorHeader { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.forumEditorTitle { font-size: 1rem; font-weight: 700; color: var(--text-main); flex: 1; }
+.forumEditorActions { display: flex; gap: 0.5rem; }
+.forumEditorBody { display: flex; flex-direction: column; gap: 1.5rem; }
+.forumSection { border: 1.5px solid var(--border); border-radius: 13px; padding: 1.25rem; background: #FDFCFB; }
+.forumSectionLabel { font-size: 0.78rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.forumSectionLabel span { background: var(--accent-light); color: var(--accent); font-size: 0.7rem; padding: 1px 8px; border-radius: 20px; }
+.forumField { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
+.forumField label { font-size: 0.78rem; font-weight: 500; color: var(--text-sub); }
+.forumFieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.forumInput { padding: 0.65rem 0.85rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.forumInput:focus { border-color: var(--accent-border); }
+.forumTextarea { padding: 0.65rem 0.85rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; resize: vertical; line-height: 1.6; }
+.forumTextarea:focus { border-color: var(--accent-border); }
+.forumSelect { padding: 0.62rem 0.8rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); background: white; outline: none; }
+.forumSelect:focus { border-color: var(--accent-border); }
+
+.mediaEmptyEditor { font-size: 0.82rem; color: var(--text-hint); text-align: center; padding: 1rem; border: 1.5px dashed var(--border); border-radius: 10px; margin-bottom: 0.85rem; }
+.mediaEditorList { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.85rem; }
+.mediaEditorItem { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.75rem; background: white; border: 1.5px solid var(--border); border-radius: 10px; }
+.mediaEditorNum { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); color: white; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mediaEditorInfo { flex: 1; display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex-wrap: wrap; }
+.mediaTypeBadge { font-size: 0.65rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; background: var(--accent-light); color: var(--accent); flex-shrink: 0; }
+.mediaEditorUrl { font-size: 0.78rem; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+.mediaEditorCaption { font-size: 0.72rem; color: var(--text-hint); font-style: italic; }
+.mediaEditorBtns { display: flex; gap: 0.3rem; flex-shrink: 0; }
+.addMediaBox { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.addMediaRow { display: flex; gap: 0.5rem; }
+.addMediaType { padding: 0.5rem 0.6rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.82rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); background: white; outline: none; flex-shrink: 0; }
+.addMediaInput { flex: 1; padding: 0.5rem 0.7rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addMediaInput:focus { border-color: var(--accent-border); }
+.btnAddMedia { padding: 0.5rem 0.85rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; flex-shrink: 0; }
+.btnAddMedia:hover { background: #6344a8; }
