@@ -120,3 +120,17 @@
 .existingFileSize { font-size: 0.72rem; color: var(--text-hint); flex-shrink: 0; }
 .btnDeleteFile { background: none; border: none; cursor: pointer; font-size: 0.85rem; flex-shrink: 0; padding: 0 2px; opacity: 0.6; }
 .btnDeleteFile:hover { opacity: 1; }
+
+/* ── Forum section on subjects page ── */
+.forumSection { margin-top: 2rem; }
+.forumSectionTitle { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.forumSectionSub { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 1rem; }
+.forumCards { display: flex; flex-direction: column; gap: 0.7rem; }
+.forumCard { display: flex; align-items: center; gap: 1rem; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; cursor: pointer; transition: all 0.18s; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
+.forumCard:hover { border-color: var(--accent-border); background: var(--accent-light); transform: translateY(-1px); }
+.forumCardIcon { font-size: 1.75rem; flex-shrink: 0; }
+.forumCardInfo { flex: 1; min-width: 0; }
+.forumCardTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.2rem; }
+.forumCardDesc { font-size: 0.8rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 0.3rem; }
+.forumCardMeta { display: flex; gap: 0.5rem; font-size: 0.72rem; color: var(--text-hint); }
+.forumCardArrow { font-size: 1.1rem; color: var(--accent); flex-shrink: 0; font-weight: 700; }
