@@ -259,3 +259,11 @@
 .addMediaInput:focus { border-color: var(--accent-border); }
 .btnAddMedia { padding: 0.5rem 0.85rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; flex-shrink: 0; }
 .btnAddMedia:hover { background: #6344a8; }
+
+/* Layout slider */
+.sliderWrap { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.4rem; }
+.sliderLabel { font-size: 0.72rem; color: var(--text-hint); white-space: nowrap; flex-shrink: 0; }
+.slider { flex: 1; height: 4px; accent-color: var(--accent); cursor: pointer; }
+.layoutPreview { display: flex; height: 36px; border-radius: 8px; overflow: hidden; margin-top: 0.6rem; border: 1.5px solid var(--border); }
+.layoutPreviewMedia { background: var(--accent-light); color: var(--accent); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: flex 0.2s; }
+.layoutPreviewComment { background: var(--teacher-light); color: var(--teacher); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: flex 0.2s; }
