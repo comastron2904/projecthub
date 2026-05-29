@@ -16,7 +16,7 @@ interface Submission {
   project_id: string; project_title: string; submitted_at: string | null; submitted: boolean;
 }
 interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
-interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean }
+interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean; layout_media: number; layout_comment: number; comment_height: number }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 
@@ -73,6 +73,9 @@ export default function TeacherDashboard() {
   const [newMediaType, setNewMediaType] = useState<'video' | 'image' | 'embed'>('video')
   const [newMediaCaption, setNewMediaCaption] = useState('')
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
+  // 레이아웃 설정 (미디어 비율 %, 댓글창 높이 px)
+  const [fLayoutMedia, setFLayoutMedia] = useState(62)
+  const [fCommentHeight, setFCommentHeight] = useState(70)
 
   /* ── Auth guard ── */
   useEffect(() => {
@@ -356,6 +359,7 @@ export default function TeacherDashboard() {
     setCurrentForumId(null)
     setFTitle(''); setFDesc(''); setFSubjectId(''); setFActive(true); setFMediaItems([])
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
+    setFLayoutMedia(62); setFCommentHeight(70)
     setForumView('editor')
   }
 
@@ -364,6 +368,8 @@ export default function TeacherDashboard() {
     setFTitle(f.title); setFDesc(f.description)
     setFSubjectId(f.subject_id || ''); setFActive(f.is_active)
     setFMediaItems(JSON.parse(JSON.stringify(f.media_items || [])))
+    setFLayoutMedia(f.layout_media ?? 62)
+    setFCommentHeight(f.comment_height ?? 70)
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
     setForumView('editor')
   }
@@ -374,6 +380,9 @@ export default function TeacherDashboard() {
       title: fTitle, description: fDesc,
       subject_id: fSubjectId || null,
       is_active: fActive, media_items: fMediaItems,
+      layout_media: fLayoutMedia,
+      layout_comment: 100 - fLayoutMedia,
+      comment_height: fCommentHeight,
     }
     if (currentForumId) {
       const { error } = await supabase.from('forums').update(payload).eq('id', currentForumId)
@@ -862,6 +871,43 @@ export default function TeacherDashboard() {
                         <option value="active">활성 (학생 접근 가능)</option>
                         <option value="inactive">비활성 (숨김)</option>
                       </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 레이아웃 설정 */}
+                <div className={styles.forumSection}>
+                  <div className={styles.forumSectionLabel}>레이아웃 설정</div>
+
+                  {/* 미디어/댓글 비율 */}
+                  <div className={styles.forumField}>
+                    <label>미디어 영역 너비 <strong style={{color:'var(--accent)'}}>{fLayoutMedia}%</strong> / 댓글 영역 <strong style={{color:'var(--teacher)'}}>{100 - fLayoutMedia}%</strong></label>
+                    <div className={styles.sliderWrap}>
+                      <span className={styles.sliderLabel}>미디어 넓게</span>
+                      <input type="range" min={40} max={80} step={2} value={fLayoutMedia}
+                        onChange={e => setFLayoutMedia(Number(e.target.value))}
+                        className={styles.slider} />
+                      <span className={styles.sliderLabel}>댓글 넓게</span>
+                    </div>
+                    <div className={styles.layoutPreview}>
+                      <div className={styles.layoutPreviewMedia} style={{flex: fLayoutMedia}}>
+                        🎬 미디어 {fLayoutMedia}%
+                      </div>
+                      <div className={styles.layoutPreviewComment} style={{flex: 100 - fLayoutMedia}}>
+                        💬 댓글 {100 - fLayoutMedia}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 댓글창 높이 */}
+                  <div className={styles.forumField}>
+                    <label>댓글 목록 높이 <strong style={{color:'var(--teacher)'}}>{fCommentHeight}vh</strong></label>
+                    <div className={styles.sliderWrap}>
+                      <span className={styles.sliderLabel}>낮게</span>
+                      <input type="range" min={30} max={85} step={5} value={fCommentHeight}
+                        onChange={e => setFCommentHeight(Number(e.target.value))}
+                        className={styles.slider} />
+                      <span className={styles.sliderLabel}>높게</span>
                     </div>
                   </div>
                 </div>
