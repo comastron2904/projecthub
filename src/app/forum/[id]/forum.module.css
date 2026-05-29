@@ -1,0 +1,129 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.65rem 1.25rem;
+  background: white; border-bottom: 1.5px solid var(--border);
+  flex-shrink: 0; gap: 1rem;
+}
+.topbarLeft { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.logoIcon { width: 26px; height: 26px; border-radius: 7px; background: var(--teacher); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.siteName { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--text-main); flex-shrink: 0; }
+.forumBadge { background: var(--accent-light); color: var(--accent); font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: 0.06em; flex-shrink: 0; }
+.forumTitle { font-size: 0.9rem; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbarRight { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+.stuName { font-size: 0.8rem; color: var(--text-sub); }
+.btnBack { padding: 0.35rem 0.8rem; border: 1.5px solid var(--border); border-radius: 8px; background: white; font-size: 0.78rem; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; color: var(--text-sub); }
+.btnBack:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Main layout */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* ── Media Panel ── */
+.mediaPanel {
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  padding: 1.25rem;
+  gap: 1rem;
+  border-right: 1.5px solid var(--border);
+}
+.mediaEmpty { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-hint); font-size: 0.9rem; }
+.mediaMain { width: 100%; border-radius: 14px; overflow: hidden; background: #000; }
+.mediaBlock { width: 100%; }
+.mediaIframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
+.mediaVideo { width: 100%; max-height: 65vh; display: block; border-radius: 0; }
+.mediaImage { width: 100%; max-height: 70vh; object-fit: contain; display: block; background: #111; }
+.mediaCaption { font-size: 0.78rem; color: var(--text-sub); padding: 0.5rem 0.25rem 0; text-align: center; }
+
+.mediaThumbs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.mediaThumb {
+  display: flex; align-items: center; gap: 5px;
+  padding: 0.4rem 0.75rem; border: 1.5px solid var(--border); border-radius: 8px;
+  background: white; cursor: pointer; font-size: 0.78rem; font-family: 'Noto Sans KR', sans-serif;
+  color: var(--text-sub); transition: all 0.15s;
+}
+.mediaThumb:hover { border-color: var(--accent-border); color: var(--accent); }
+.mediaThumbActive { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 700; }
+
+.descBox { background: white; border: 1.5px solid var(--border); border-radius: 14px; padding: 1.25rem; }
+.descLabel { font-size: 0.75rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.6rem; }
+.descText { font-size: 0.9rem; color: var(--text-main); line-height: 1.75; white-space: pre-wrap; }
+
+/* ── Comment Panel ── */
+.commentPanel {
+  display: flex; flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: white;
+}
+.commentHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.85rem 1.1rem; border-bottom: 1.5px solid var(--border); flex-shrink: 0;
+}
+.commentHeaderTitle { font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
+.commentCount { font-size: 0.72rem; background: var(--accent-light); color: var(--accent); padding: 2px 9px; border-radius: 20px; font-weight: 700; }
+
+.myIdentity {
+  display: flex; align-items: center; gap: 0.65rem;
+  padding: 0.7rem 1.1rem; background: var(--student-light);
+  border-bottom: 1.5px solid var(--student-border); flex-shrink: 0;
+}
+.myAvatar { width: 30px; height: 30px; border-radius: 50%; background: var(--student); color: white; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.myName { font-size: 0.82rem; font-weight: 700; color: var(--student); }
+.myId { font-size: 0.7rem; color: var(--text-hint); }
+
+.commentsList {
+  flex: 1; overflow-y: auto;
+  padding: 0.85rem 1.1rem;
+  display: flex; flex-direction: column; gap: 0.85rem;
+}
+.commentsEmpty { text-align: center; padding: 2.5rem 1rem; color: var(--text-hint); font-size: 0.82rem; line-height: 1.8; }
+
+.commentItem { display: flex; flex-direction: column; gap: 0.3rem; }
+.commentMeta { display: flex; align-items: center; gap: 0.5rem; }
+.commentAvatar { width: 26px; height: 26px; border-radius: 50%; background: #D8D4CC; color: var(--text-main); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.commentAvatarMe { background: var(--student); color: white; }
+.commentInfo { flex: 1; display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.commentName { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
+.commentId { font-size: 0.68rem; color: var(--text-hint); }
+.commentTime { font-size: 0.68rem; color: var(--text-hint); flex-shrink: 0; }
+.commentBubble {
+  margin-left: 34px; padding: 0.55rem 0.8rem;
+  background: #F5F3EE; border-radius: 0 10px 10px 10px;
+  font-size: 0.85rem; color: var(--text-main); line-height: 1.55; white-space: pre-wrap;
+  word-break: break-word;
+}
+.commentBubbleMe { background: var(--student-light); border-radius: 10px 10px 10px 0; }
+
+.commentInputBox {
+  display: flex; gap: 0.5rem;
+  padding: 0.75rem 1.1rem; border-top: 1.5px solid var(--border); flex-shrink: 0;
+  background: white;
+}
+.commentInput {
+  flex: 1; padding: 0.6rem 0.8rem; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main);
+  outline: none; resize: none; line-height: 1.5;
+}
+.commentInput:focus { border-color: var(--student-border); }
+.commentInput::placeholder { color: var(--text-hint); }
+.btnSend {
+  padding: 0.5rem 1rem; background: var(--student); color: white; border: none; border-radius: 10px;
+  font-size: 0.83rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: all 0.15s; align-self: flex-end; flex-shrink: 0;
+}
+.btnSend:hover { background: #1e4029; }
+.btnSend:disabled { opacity: 0.4; cursor: not-allowed; }
