@@ -10,6 +10,7 @@ interface Stage { title: string; items: StageItem[] }
 interface Project { id: string; subject_id: string; title: string; description: string; stages: Stage[] }
 interface SubmissionFile { id: number; file_name: string; file_path: string; file_size: string; uploaded_at: string }
 interface Submission { project_id: string; answers: Record<string, string>; files: SubmissionFile[]; submitted_at: string }
+interface Forum { id: string; title: string; description: string; media_items: unknown[]; is_active: boolean; subject_id: string | null }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 type View = 'subjects' | 'projects' | 'worksheet'
@@ -22,6 +23,7 @@ export default function StudentDashboard() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [forums, setForums] = useState<Forum[]>([])
 
   const [view, setView] = useState<View>('subjects')
   const [currentSubjectId, setCurrentSubjectId] = useState<string | null>(null)
@@ -46,12 +48,14 @@ export default function StudentDashboard() {
   }, [router])
 
   const loadData = useCallback(async (stuId: string) => {
-    const [{ data: subs }, { data: projs }] = await Promise.all([
+    const [{ data: subs }, { data: projs }, { data: frms }] = await Promise.all([
       supabase.from('subjects').select('*').order('created_at'),
       supabase.from('projects').select('*').order('created_at'),
+      supabase.from('forums').select('*').eq('is_active', true).order('created_at'),
     ])
     if (subs) setSubjects(subs)
     if (projs) setProjects(projs)
+    if (frms) setForums(frms)
 
     // 제출 목록 + 파일 목록 조인
     const { data: sbms } = await supabase.from('submissions')
@@ -248,6 +252,32 @@ export default function StudentDashboard() {
                   <div className={styles.subjectCardMeta}>프로젝트 {projects.filter(p => p.subject_id === s.id).length}개</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Forum section */}
+          {forums.length > 0 && (
+            <div className={styles.forumSection}>
+              <p className={styles.forumSectionTitle}>🎬 포럼</p>
+              <p className={styles.forumSectionSub}>교사가 개설한 포럼에 참여하세요.</p>
+              <div className={styles.forumCards}>
+                {forums.map(f => (
+                  <div key={f.id} className={styles.forumCard} onClick={() => router.push(`/forum/${f.id}`)}>
+                    <div className={styles.forumCardIcon}>🎬</div>
+                    <div className={styles.forumCardInfo}>
+                      <div className={styles.forumCardTitle}>{f.title}</div>
+                      {f.description && <div className={styles.forumCardDesc}>{f.description.slice(0, 60)}{f.description.length > 60 ? '…' : ''}</div>}
+                      <div className={styles.forumCardMeta}>
+                        {f.subject_id && subjects.find(s => s.id === f.subject_id) && (
+                          <span>{subjects.find(s => s.id === f.subject_id)?.name}</span>
+                        )}
+                        <span>{(f.media_items || []).length}개 미디어</span>
+                      </div>
+                    </div>
+                    <div className={styles.forumCardArrow}>→</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
