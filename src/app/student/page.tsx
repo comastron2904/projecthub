@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import styles from './student.module.css'
@@ -8,7 +8,8 @@ interface Subject { id: string; name: string }
 interface StageItem { type: 'q' | 'd'; content: string }
 interface Stage { title: string; items: StageItem[] }
 interface Project { id: string; subject_id: string; title: string; description: string; stages: Stage[] }
-interface Submission { project_id: string; answers: Record<string, string>; file_name: string | null; file_path: string | null; submitted_at: string }
+interface SubmissionFile { id: number; file_name: string; file_path: string; file_size: string; uploaded_at: string }
+interface Submission { project_id: string; answers: Record<string, string>; files: SubmissionFile[]; submitted_at: string }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 type View = 'subjects' | 'projects' | 'worksheet'
@@ -30,8 +31,10 @@ export default function StudentDashboard() {
   const [submitted, setSubmitted] = useState(false)
   const [editing, setEditing] = useState(false)
   const [submitInfo, setSubmitInfo] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [existingFiles, setExistingFiles] = useState<SubmissionFile[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [toast, setToast] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
@@ -43,14 +46,25 @@ export default function StudentDashboard() {
   }, [router])
 
   const loadData = useCallback(async (stuId: string) => {
-    const [{ data: subs }, { data: projs }, { data: sbms }] = await Promise.all([
+    const [{ data: subs }, { data: projs }] = await Promise.all([
       supabase.from('subjects').select('*').order('created_at'),
       supabase.from('projects').select('*').order('created_at'),
-      supabase.from('submissions').select('project_id,answers,file_name,file_path,submitted_at').eq('student_id', stuId),
     ])
     if (subs) setSubjects(subs)
     if (projs) setProjects(projs)
-    if (sbms) setSubmissions(sbms)
+
+    // 제출 목록 + 파일 목록 조인
+    const { data: sbms } = await supabase.from('submissions')
+      .select('project_id, answers, submitted_at, submission_files(id, file_name, file_path, file_size, uploaded_at)')
+      .eq('student_id', stuId)
+    if (sbms) {
+      setSubmissions(sbms.map((s: Record<string, unknown>) => ({
+        project_id: s.project_id as string,
+        answers: (s.answers || {}) as Record<string, string>,
+        submitted_at: s.submitted_at as string,
+        files: (s.submission_files || []) as SubmissionFile[],
+      })))
+    }
   }, [supabase])
 
   useEffect(() => { if (student) loadData(student.id) }, [student, loadData])
@@ -74,11 +88,12 @@ export default function StudentDashboard() {
     if (sub) {
       setSubmitted(true)
       setAnswers(sub.answers)
-      setSubmitInfo(`제출 시각: ${sub.submitted_at}${sub.file_name ? ' · 파일: ' + sub.file_name : ''}`)
+      setExistingFiles(sub.files || [])
+      setSubmitInfo(`제출 시각: ${sub.submitted_at}`)
     } else {
-      setSubmitted(false); setSubmitInfo('')
+      setSubmitted(false); setSubmitInfo(''); setExistingFiles([])
     }
-    setSelectedFile(null); setEditing(false); setView('worksheet')
+    setSelectedFiles([]); setEditing(false); setView('worksheet')
   }
 
   async function saveDraft(key: string, value: string) {
@@ -91,32 +106,32 @@ export default function StudentDashboard() {
     }, { onConflict: 'student_id,project_id' })
   }
 
+  function addFiles(newFiles: FileList | null) {
+    if (!newFiles) return
+    const arr = Array.from(newFiles)
+    setSelectedFiles(prev => {
+      const names = new Set(prev.map(f => f.name))
+      return [...prev, ...arr.filter(f => !names.has(f.name))]
+    })
+  }
+
+  function removeSelectedFile(idx: number) {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function deleteExistingFile(fileId: number, filePath: string) {
+    await supabase.storage.from('projecthub-files').remove([filePath])
+    await supabase.from('submission_files').delete().eq('id', fileId)
+    setExistingFiles(prev => prev.filter(f => f.id !== fileId))
+    showToast('🗑 파일이 삭제되었습니다.')
+  }
+
   async function submitWorksheet() {
     if (!student || !currentProjectId || !currentSubjectId) return
     const proj = projects.find(p => p.id === currentProjectId)
     if (!proj) return
     const subj = subjects.find(s => s.id === currentSubjectId)
     setUploading(true)
-
-    // 파일 업로드 (Supabase Storage)
-    let file_path: string | null = null
-    let file_name: string | null = null
-    let file_size: string | null = null
-
-    if (selectedFile) {
-      const ext = selectedFile.name.split('.').pop()
-      const storagePath = `submissions/${student.id}_${currentProjectId}.${ext}`
-      const { error: upErr } = await supabase.storage
-        .from('projecthub-files')
-        .upload(storagePath, selectedFile, { upsert: true })
-      if (upErr) {
-        showToast('❌ 파일 업로드 중 오류가 발생했습니다.')
-        setUploading(false); return
-      }
-      file_path = storagePath
-      file_name = selectedFile.name
-      file_size = (selectedFile.size / 1024 / 1024).toFixed(1) + 'MB'
-    }
 
     const now = new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     const sid = student.id
@@ -129,34 +144,62 @@ export default function StudentDashboard() {
       student_id: sid, student_name: student.name,
       subject_id: currentSubjectId, subject_name: subj?.name || '',
       project_id: currentProjectId, project_title: proj.title,
-      answers, submitted: true, file_name, file_size, file_path, submitted_at: now,
+      answers, submitted: true, submitted_at: now,
     }
 
-    // 기존 제출 여부 확인
+    // 기존 제출 여부 확인 → insert or update
     const { data: existing } = await supabase.from('submissions')
       .select('id').eq('student_id', sid).eq('project_id', currentProjectId).single()
 
+    let submissionId: number | null = null
     let error
     if (existing) {
-      // 재제출: update
-      const { error: e } = await supabase.from('submissions')
-        .update(payload).eq('id', existing.id)
+      const { error: e } = await supabase.from('submissions').update(payload).eq('id', existing.id)
+      submissionId = existing.id
       error = e
     } else {
-      // 최초 제출: insert
-      const { error: e } = await supabase.from('submissions').insert(payload)
+      const { data: inserted, error: e } = await supabase.from('submissions').insert(payload).select('id').single()
+      submissionId = inserted?.id ?? null
       error = e
     }
 
-    setUploading(false)
-    if (error) { showToast('❌ 제출 중 오류가 발생했습니다.'); return }
+    if (error || !submissionId) {
+      showToast('❌ 제출 중 오류가 발생했습니다.')
+      setUploading(false); return
+    }
 
-    setSubmitted(true)
-    setEditing(false)
-    setSubmitInfo(`제출 시각: ${now}${file_name ? ' · 파일: ' + file_name : ''}`)
+    // 새 파일들 업로드 → submission_files에 저장
+    for (const file of selectedFiles) {
+      const ext = file.name.split('.').pop()
+      const storagePath = `submissions/${sid}_${currentProjectId}_${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('projecthub-files')
+        .upload(storagePath, file, { upsert: false })
+      if (upErr) { showToast(`❌ ${file.name} 업로드 실패`); continue }
+      await supabase.from('submission_files').insert({
+        submission_id: submissionId,
+        student_id: sid,
+        project_id: currentProjectId,
+        file_name: file.name,
+        file_path: storagePath,
+        file_size: (file.size / 1024 / 1024).toFixed(1) + 'MB',
+        uploaded_at: now,
+      })
+    }
+
+    // 최신 파일 목록 다시 로드
+    const { data: newFiles } = await supabase.from('submission_files')
+      .select('id, file_name, file_path, file_size, uploaded_at')
+      .eq('student_id', sid).eq('project_id', currentProjectId)
+    setExistingFiles(newFiles || [])
+
+    setUploading(false)
+    setSubmitted(true); setEditing(false)
+    setSubmitInfo(`제출 시각: ${now}`)
+    setSelectedFiles([])
     setSubmissions(prev => {
       const filtered = prev.filter(s => s.project_id !== currentProjectId)
-      return [...filtered, { project_id: currentProjectId, answers, file_name, file_path, submitted_at: now }]
+      return [...filtered, { project_id: currentProjectId, answers, files: newFiles || [], submitted_at: now }]
     })
     showToast('✅ 제출이 완료되었습니다!')
   }
@@ -165,9 +208,7 @@ export default function StudentDashboard() {
   const visibleSubjects = subjects.filter(s => projects.some(p => p.subject_id === s.id))
   const currentProject = projects.find(p => p.id === currentProjectId)
   const currentSubject = subjects.find(s => s.id === currentSubjectId)
-
-  const allItems = (currentProject?.stages || []).flatMap(st => st.items)
-  const totalItems = allItems.length
+  const totalItems = (currentProject?.stages || []).flatMap(st => st.items).length
   const answeredCount = Object.values(answers).filter(v => v?.trim()).length
   const pct = totalItems > 0 ? Math.round(answeredCount / totalItems * 100) : 0
 
@@ -175,7 +216,6 @@ export default function StudentDashboard() {
 
   return (
     <div className={styles.dashPage}>
-      {/* Topbar */}
       <div className={styles.topbar}>
         <div className={styles.dashLogo}>
           <div className={styles.logoIcon}>
@@ -257,9 +297,7 @@ export default function StudentDashboard() {
             </div>
             <div className={styles.wsProgress}>
               <span>{answeredCount}/{totalItems}개 작성</span>
-              <div className={styles.wsProgressBar}>
-                <div className={styles.wsProgressFill} style={{ width: pct + '%' }} />
-              </div>
+              <div className={styles.wsProgressBar}><div className={styles.wsProgressFill} style={{ width: pct + '%' }} /></div>
             </div>
           </div>
 
@@ -272,7 +310,6 @@ export default function StudentDashboard() {
               <button className={styles.btnReEdit} onClick={() => setEditing(true)}>✏️ 수정하기</button>
             </div>
           )}
-
           {submitted && editing && (
             <div className={styles.editingBanner}>
               ✏️ 수정 중입니다. 변경 후 <strong>재제출</strong>하면 기존 내용이 덮어씌워집니다.
@@ -294,9 +331,7 @@ export default function StudentDashboard() {
                     return (
                       <div key={ii} className={styles.wsItem}>
                         <div className={styles.wsItemPrompt}>
-                          <span className={`${styles.wsItemBadge} ${isQ ? styles.wsBadgeQ : styles.wsBadgeD}`}>
-                            {isQ ? '질문' : '설명'}
-                          </span>
+                          <span className={`${styles.wsItemBadge} ${isQ ? styles.wsBadgeQ : styles.wsBadgeD}`}>{isQ ? '질문' : '설명'}</span>
                           <span className={styles.wsItemText}>{item.content}</span>
                         </div>
                         <textarea
@@ -316,18 +351,42 @@ export default function StudentDashboard() {
 
           {(!submitted || editing) && (
             <div className={`${styles.submitForm} ${editing ? styles.submitFormEditing : ''}`}>
-              <div className={styles.submitFormTitle}>
-                {editing ? '📝 수정 후 재제출' : '📤 워크시트 제출'}
-              </div>
+              <div className={styles.submitFormTitle}>{editing ? '📝 수정 후 재제출' : '📤 워크시트 제출'}</div>
+
+              {/* 기존 첨부파일 목록 (수정 중일 때) */}
+              {editing && existingFiles.length > 0 && (
+                <div className={styles.existingFilesBox}>
+                  <div className={styles.existingFilesLabel}>기존 첨부파일</div>
+                  {existingFiles.map(f => (
+                    <div key={f.id} className={styles.existingFileRow}>
+                      <span className={styles.existingFileName}>📎 {f.name || f.file_name}</span>
+                      <span className={styles.existingFileSize}>{f.file_size}</span>
+                      <button className={styles.btnDeleteFile} onClick={() => deleteExistingFile(f.id, f.file_path)}>🗑</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 새 파일 추가 */}
               <div className={styles.fileUploadRow}>
-                <label className={styles.fileLabel}>
-                  📎 파일 첨부 (선택)
-                  <input type="file" style={{ display: 'none' }} onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                <label className={styles.fileLabel} onClick={() => fileInputRef.current?.click()}>
+                  📎 {editing ? '파일 추가' : '파일 첨부 (선택)'}
                 </label>
-                {selectedFile
-                  ? <span className={styles.fileSelected}>📄 {selectedFile.name}</span>
-                  : <span className={styles.fileHint}>{editing ? '새 파일로 교체하거나 그냥 재제출' : '이미지, PDF, 문서 등'}</span>}
+                <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
+                {selectedFiles.length === 0 && <span className={styles.fileHint}>{editing ? '새 파일을 추가할 수 있어요' : '이미지, PDF, 문서 등 여러 개 가능'}</span>}
               </div>
+              {selectedFiles.length > 0 && (
+                <div className={styles.selectedFilesList}>
+                  {selectedFiles.map((f, i) => (
+                    <div key={i} className={styles.selectedFileRow}>
+                      <span className={styles.selectedFileName}>📄 {f.name}</span>
+                      <span className={styles.selectedFileSize}>{(f.size/1024/1024).toFixed(1)}MB</span>
+                      <button className={styles.btnRemoveFile} onClick={() => removeSelectedFile(i)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <button className={`${styles.btnSubmit} ${editing ? styles.btnResubmit : ''}`} onClick={submitWorksheet} disabled={uploading}>
                 {uploading ? '⏳ 업로드 중...' : editing ? '재제출하기' : '제출하기'}
               </button>
