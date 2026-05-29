@@ -103,3 +103,20 @@
 .submitFormEditing { border-color: #F5C842 !important; background: #FFFDF0 !important; }
 .btnResubmit { background: #C25E00 !important; }
 .btnResubmit:hover { background: #9A4A00 !important; }
+
+/* Multi-file upload */
+.selectedFilesList { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+.selectedFileRow { display: flex; align-items: center; gap: 0.5rem; background: var(--student-light); border: 1px solid var(--student-border); border-radius: 8px; padding: 0.4rem 0.7rem; }
+.selectedFileName { flex: 1; font-size: 0.8rem; color: var(--student); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selectedFileSize { font-size: 0.72rem; color: var(--text-hint); flex-shrink: 0; }
+.btnRemoveFile { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 0.75rem; flex-shrink: 0; padding: 0 2px; }
+.btnRemoveFile:hover { color: var(--danger); }
+
+.existingFilesBox { background: #FAFAF8; border: 1.5px solid var(--border); border-radius: 10px; padding: 0.75rem; margin-bottom: 0.85rem; }
+.existingFilesLabel { font-size: 0.72rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.5rem; }
+.existingFileRow { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px solid var(--border); }
+.existingFileRow:last-child { border-bottom: none; }
+.existingFileName { flex: 1; font-size: 0.82rem; color: var(--text-main); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.existingFileSize { font-size: 0.72rem; color: var(--text-hint); flex-shrink: 0; }
+.btnDeleteFile { background: none; border: none; cursor: pointer; font-size: 0.85rem; flex-shrink: 0; padding: 0 2px; opacity: 0.6; }
+.btnDeleteFile:hover { opacity: 1; }
