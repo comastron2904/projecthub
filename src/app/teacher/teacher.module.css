@@ -203,3 +203,59 @@
 .fileDropdownName { font-size: 0.82rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 .fileDropdownMeta { font-size: 0.7rem; color: var(--text-hint); margin-top: 1px; }
 .fileDropdownDl { font-size: 0.85rem; color: var(--teacher); flex-shrink: 0; font-weight: 700; }
+
+/* ── Forum styles ── */
+.forumListHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.btnNewForum { padding: 0.5rem 1.1rem; background: var(--accent); color: white; border: none; border-radius: 9px; font-size: 0.85rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnNewForum:hover { background: #6344a8; }
+.forumEmpty { text-align: center; padding: 4rem 1rem; color: var(--text-hint); font-size: 0.88rem; line-height: 2; }
+.forumEmpty div { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.forumCards { display: flex; flex-direction: column; gap: 0.75rem; }
+.forumCard { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
+.forumCardLeft { flex: 1; min-width: 0; }
+.forumCardTitle { font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.forumCardMeta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-hint); flex-wrap: wrap; }
+.forumActiveBadge { background: var(--success-light); color: var(--success); font-weight: 700; padding: 1px 8px; border-radius: 20px; }
+.forumInactiveBadge { background: #F1EFE8; color: var(--text-hint); font-weight: 700; padding: 1px 8px; border-radius: 20px; }
+.forumCardActions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.btnCopyLink { padding: 0.38rem 0.75rem; background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
+.btnCopyLink:hover { background: var(--accent); color: white; }
+.btnEditForum { padding: 0.38rem 0.75rem; background: var(--teacher-light); color: var(--teacher); border: 1.5px solid var(--teacher-border); border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnEditForum:hover { background: var(--teacher); color: white; }
+.btnDelForum { padding: 0.38rem 0.75rem; background: var(--danger-light); color: var(--danger); border: 1.5px solid #F5BCBC; border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+.btnDelForum:hover { background: var(--danger); color: white; }
+
+.forumEditor { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.forumEditorHeader { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.forumEditorTitle { font-size: 1rem; font-weight: 700; color: var(--text-main); flex: 1; }
+.forumEditorActions { display: flex; gap: 0.5rem; }
+.forumEditorBody { display: flex; flex-direction: column; gap: 1.5rem; }
+.forumSection { border: 1.5px solid var(--border); border-radius: 13px; padding: 1.25rem; background: #FDFCFB; }
+.forumSectionLabel { font-size: 0.78rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.forumSectionLabel span { background: var(--accent-light); color: var(--accent); font-size: 0.7rem; padding: 1px 8px; border-radius: 20px; }
+.forumField { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
+.forumField label { font-size: 0.78rem; font-weight: 500; color: var(--text-sub); }
+.forumFieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.forumInput { padding: 0.65rem 0.85rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.forumInput:focus { border-color: var(--accent-border); }
+.forumTextarea { padding: 0.65rem 0.85rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; resize: vertical; line-height: 1.6; }
+.forumTextarea:focus { border-color: var(--accent-border); }
+.forumSelect { padding: 0.62rem 0.8rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); background: white; outline: none; }
+.forumSelect:focus { border-color: var(--accent-border); }
+
+.mediaEmptyEditor { font-size: 0.82rem; color: var(--text-hint); text-align: center; padding: 1rem; border: 1.5px dashed var(--border); border-radius: 10px; margin-bottom: 0.85rem; }
+.mediaEditorList { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.85rem; }
+.mediaEditorItem { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.75rem; background: white; border: 1.5px solid var(--border); border-radius: 10px; }
+.mediaEditorNum { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); color: white; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mediaEditorInfo { flex: 1; display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex-wrap: wrap; }
+.mediaTypeBadge { font-size: 0.65rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; background: var(--accent-light); color: var(--accent); flex-shrink: 0; }
+.mediaEditorUrl { font-size: 0.78rem; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+.mediaEditorCaption { font-size: 0.72rem; color: var(--text-hint); font-style: italic; }
+.mediaEditorBtns { display: flex; gap: 0.3rem; flex-shrink: 0; }
+.addMediaBox { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.addMediaRow { display: flex; gap: 0.5rem; }
+.addMediaType { padding: 0.5rem 0.6rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.82rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); background: white; outline: none; flex-shrink: 0; }
+.addMediaInput { flex: 1; padding: 0.5rem 0.7rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.85rem; font-family: 'Noto Sans KR', sans-serif; color: var(--text-main); outline: none; }
+.addMediaInput:focus { border-color: var(--accent-border); }
+.btnAddMedia { padding: 0.5rem 0.85rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; flex-shrink: 0; }
+.btnAddMedia:hover { background: #6344a8; }
