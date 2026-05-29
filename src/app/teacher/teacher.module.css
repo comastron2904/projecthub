@@ -267,3 +267,12 @@
 .layoutPreview { display: flex; height: 36px; border-radius: 8px; overflow: hidden; margin-top: 0.6rem; border: 1.5px solid var(--border); }
 .layoutPreviewMedia { background: var(--accent-light); color: var(--accent); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: flex 0.2s; }
 .layoutPreviewComment { background: var(--teacher-light); color: var(--teacher); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: flex 0.2s; }
+
+.backLink {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 0.5rem 1rem; background: white; color: var(--text-sub);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 0.83rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.backLink:hover { border-color: var(--text-main); color: var(--text-main); }
