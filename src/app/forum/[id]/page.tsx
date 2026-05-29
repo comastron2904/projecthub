@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import styles from './forum.module.css'
 
 interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
-interface Forum { id: string; title: string; description: string; media_items: MediaItem[]; subject_id: string }
+interface Forum { id: string; title: string; description: string; media_items: MediaItem[]; subject_id: string; layout_media: number; layout_comment: number; comment_height: number }
 interface Comment { id: number; student_id: string; student_name: string; content: string; created_at: string }
 
 function MediaRenderer({ item }: { item: MediaItem }) {
@@ -153,7 +153,9 @@ export default function ForumPage() {
       </div>
 
       {/* Main layout */}
-      <div className={styles.layout}>
+      <div className={styles.layout} style={{
+        gridTemplateColumns: `${forum.layout_media ?? 62}fr ${forum.layout_comment ?? 38}fr`
+      }}>
         {/* ── Left: Media + Description ── */}
         <div className={styles.mediaPanel}>
           {/* Media viewer */}
@@ -206,7 +208,7 @@ export default function ForumPage() {
           </div>
 
           {/* Comments list */}
-          <div className={styles.commentsList}>
+          <div className={styles.commentsList} style={{maxHeight: `${forum.comment_height ?? 70}vh`}}>
             {comments.length === 0 && (
               <div className={styles.commentsEmpty}>아직 댓글이 없어요.<br/>첫 번째로 의견을 남겨보세요!</div>
             )}
