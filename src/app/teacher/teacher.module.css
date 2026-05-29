@@ -189,3 +189,17 @@
 .btnDlFile:hover { background: #E67700; color: white; border-color: #E67700; }
 .fileSizeInBtn { font-size: 0.65rem; font-weight: 400; opacity: 0.75; margin-left: 2px; }
 .dlDisabled { font-size: 0.8rem; color: var(--text-hint); }
+
+/* File dropdown */
+.btnDlFileActive { background: var(--teacher) !important; color: white !important; border-color: var(--teacher) !important; }
+.fileDropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 200; background: white; border: 1.5px solid var(--border); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 280px; overflow: hidden; }
+.fileDropdownHeader { font-size: 0.72rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.06em; text-transform: uppercase; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); background: #FAFAF8; }
+.fileDropdownEmpty { font-size: 0.82rem; color: var(--text-hint); text-align: center; padding: 1rem; }
+.fileDropdownItem { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 1rem; cursor: pointer; transition: background 0.12s; border-bottom: 1px solid #F5F3EE; gap: 0.5rem; }
+.fileDropdownItem:last-child { border-bottom: none; }
+.fileDropdownItem:hover { background: var(--teacher-light); }
+.fileDropdownItemLeft { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.fileDropdownIcon { font-size: 1.1rem; flex-shrink: 0; }
+.fileDropdownName { font-size: 0.82rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.fileDropdownMeta { font-size: 0.7rem; color: var(--text-hint); margin-top: 1px; }
+.fileDropdownDl { font-size: 0.85rem; color: var(--teacher); flex-shrink: 0; font-weight: 700; }
