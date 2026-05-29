@@ -359,7 +359,7 @@ export default function StudentDashboard() {
                   <div className={styles.existingFilesLabel}>기존 첨부파일</div>
                   {existingFiles.map(f => (
                     <div key={f.id} className={styles.existingFileRow}>
-                      <span className={styles.existingFileName}>📎 {f.name || f.file_name}</span>
+                      <span className={styles.existingFileName}>📎 {f.file_name}</span>
                       <span className={styles.existingFileSize}>{f.file_size}</span>
                       <button className={styles.btnDeleteFile} onClick={() => deleteExistingFile(f.id, f.file_path)}>🗑</button>
                     </div>
