@@ -228,29 +228,32 @@ export default function TeacherDashboard() {
     return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <title>${escHtml(subjName)} · ${escHtml(projTitle)} — ${escHtml(s.student_name)} 제출보고서</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans KR',sans-serif;background:#F7F5F0;padding:2.5rem 1rem;color:#1A1814;}.page{max-width:720px;margin:0 auto;}.report-header{background:white;border:1.5px solid #E4E0D8;border-radius:18px;padding:2rem;margin-bottom:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,0.06);}.subj-badge{display:inline-block;background:#EAF3DE;color:#2D5A3D;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:0.6rem;}.proj-title{font-size:1.5rem;font-weight:700;color:#1A1814;margin-bottom:0.4rem;}.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:1rem;}.meta-item{background:#F7F5F0;border-radius:10px;padding:0.65rem 0.85rem;}.meta-label{font-size:0.68rem;font-weight:700;color:#A8A49E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:2px;}.meta-value{font-size:0.88rem;font-weight:600;color:#1A1814;}.progress-row{margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #E4E0D8;}.progress-label{display:flex;justify-content:space-between;font-size:0.78rem;color:#6B6760;margin-bottom:6px;}.progress-bar{height:6px;background:#E4E0D8;border-radius:6px;overflow:hidden;}.progress-fill{height:100%;background:#2D5A3D;border-radius:6px;}.print-footer{text-align:center;font-size:0.75rem;color:#A8A49E;margin-top:2rem;padding-top:1rem;border-top:1px solid #E4E0D8;}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}body{background:#F7F5F0!important;}.no-print{display:none!important;}}</style>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans KR',sans-serif;background:#F7F5F0;padding:1.5rem 1rem;color:#1A1814;}.page{max-width:720px;margin:0 auto;}.report-header{background:white;border:1.5px solid #E4E0D8;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 2px 8px rgba(0,0,0,0.05);}.header-top{display:flex;align-items:center;gap:8px;margin-bottom:0.45rem;}.subj-badge{display:inline-block;background:#EAF3DE;color:#2D5A3D;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;}.proj-title{font-size:1.1rem;font-weight:700;color:#1A1814;}.proj-desc{font-size:0.8rem;color:#6B6760;line-height:1.5;margin-bottom:0.55rem;}.meta-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;border-top:1px solid #F0EDE6;padding-top:0.55rem;margin-top:0.1rem;}.meta-item{display:flex;align-items:center;gap:5px;padding:0 0.9rem 0 0;}.meta-item:not(:last-child){border-right:1px solid #E4E0D8;margin-right:0.9rem;}.meta-label{font-size:0.65rem;font-weight:700;color:#A8A49E;letter-spacing:0.05em;text-transform:uppercase;}.meta-value{font-size:0.82rem;font-weight:600;color:#1A1814;}.progress-row{margin-top:0.55rem;padding-top:0.55rem;border-top:1px solid #F0EDE6;display:flex;align-items:center;gap:0.75rem;}.progress-label{font-size:0.72rem;color:#6B6760;white-space:nowrap;}.progress-bar{flex:1;height:5px;background:#E4E0D8;border-radius:6px;overflow:hidden;}.progress-fill{height:100%;background:#2D5A3D;border-radius:6px;}.progress-pct{font-size:0.72rem;color:#2D5A3D;font-weight:700;white-space:nowrap;}.print-footer{text-align:center;font-size:0.72rem;color:#A8A49E;margin-top:1.5rem;padding-top:0.75rem;border-top:1px solid #E4E0D8;}@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}body{background:#F7F5F0!important;}.no-print{display:none!important;}}</style>
 </head><body><div class="page">
   <div class="report-header">
-    <div class="subj-badge">${escHtml(subjName)}</div>
-    <div class="proj-title">${escHtml(projTitle)}</div>
-    ${projDesc ? `<div style="font-size:0.85rem;color:#6B6760;line-height:1.7;margin-bottom:0.5rem;">${escHtml(projDesc)}</div>` : ''}
-    <div class="meta-grid">
-      <div class="meta-item"><div class="meta-label">학생</div><div class="meta-value">${escHtml(s.student_name)}</div></div>
-      <div class="meta-item"><div class="meta-label">학번</div><div class="meta-value">${escHtml(s.student_id)}</div></div>
-      <div class="meta-item"><div class="meta-label">과목</div><div class="meta-value">${escHtml(subjName)}</div></div>
-      <div class="meta-item"><div class="meta-label">제출 일시</div><div class="meta-value">${escHtml(s.submitted_at || '—')}</div></div>
+    <div class="header-top">
+      <span class="subj-badge">${escHtml(subjName)}</span>
+      <span class="proj-title">${escHtml(projTitle)}</span>
+    </div>
+    ${projDesc ? `<div class="proj-desc">${escHtml(projDesc)}</div>` : ''}
+    <div class="meta-row">
+      <div class="meta-item"><span class="meta-label">학생</span><span class="meta-value">${escHtml(s.student_name)}</span></div>
+      <div class="meta-item"><span class="meta-label">학번</span><span class="meta-value">${escHtml(s.student_id)}</span></div>
+      <div class="meta-item"><span class="meta-label">과목</span><span class="meta-value">${escHtml(subjName)}</span></div>
+      <div class="meta-item" style="border-right:none;margin-right:0;padding-right:0;"><span class="meta-label">제출</span><span class="meta-value">${escHtml(s.submitted_at || '—')}</span></div>
     </div>
     <div class="progress-row">
-      <div class="progress-label"><span>답변 완성도</span><span>${answeredItems} / ${totalItems}개 (${pct}%)</span></div>
+      <span class="progress-label">답변 완성도</span>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <span class="progress-pct">${answeredItems}/${totalItems} (${pct}%)</span>
     </div>
   </div>
   <div>${stagesHtml || '<div style="text-align:center;padding:3rem;color:#A8A49E;">가이드라인 정보가 없습니다.</div>'}</div>
   <div class="print-footer">ProjectHub · ${escHtml(subjName)} › ${escHtml(projTitle)} · ${escHtml(s.student_name)} (${escHtml(s.student_id)}) · ${escHtml(s.submitted_at || '')}</div>
 </div>
 <div class="no-print" style="position:fixed;bottom:1.5rem;right:1.5rem;display:flex;gap:0.5rem;">
-  <button onclick="window.print()" style="padding:0.6rem 1.1rem;background:#1A1814;color:white;border:none;border-radius:10px;font-size:0.85rem;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;">🖨 인쇄하기</button>
-  <button onclick="window.close()" style="padding:0.6rem 1.1rem;background:white;color:#6B6760;border:1.5px solid #E4E0D8;border-radius:10px;font-size:0.85rem;font-family:'Noto Sans KR',sans-serif;cursor:pointer;">✕ 닫기</button>
+  <button onclick="window.print()" style="padding:0.5rem 1rem;background:#1A1814;color:white;border:none;border-radius:9px;font-size:0.82rem;font-family:'Noto Sans KR',sans-serif;font-weight:700;cursor:pointer;">🖨 인쇄하기</button>
+  <button onclick="window.close()" style="padding:0.5rem 1rem;background:white;color:#6B6760;border:1.5px solid #E4E0D8;border-radius:9px;font-size:0.82rem;font-family:'Noto Sans KR',sans-serif;cursor:pointer;">✕ 닫기</button>
 </div>
 </body></html>`
   }
