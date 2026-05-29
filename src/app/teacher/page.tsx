@@ -15,6 +15,8 @@ interface Submission {
   student_id: string; student_name: string; subject_id: string; subject_name: string;
   project_id: string; project_title: string; submitted_at: string | null; submitted: boolean;
 }
+interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
+interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 
@@ -22,7 +24,7 @@ export default function TeacherDashboard() {
   const router = useRouter()
   const supabase = createClient()
   const [teacher, setTeacher] = useState('')
-  const [dashTab, setDashTab] = useState<'submissions' | 'guidelines'>('submissions')
+  const [dashTab, setDashTab] = useState<'submissions' | 'guidelines' | 'forums'>('submissions')
 
   // Data
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -58,6 +60,20 @@ export default function TeacherDashboard() {
   const [fileDropdownLoading, setFileDropdownLoading] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Forum state
+  const [forums, setForums] = useState<Forum[]>([])
+  const [forumView, setForumView] = useState<'list' | 'editor'>('list')
+  const [currentForumId, setCurrentForumId] = useState<string | null>(null)
+  const [fTitle, setFTitle] = useState('')
+  const [fDesc, setFDesc] = useState('')
+  const [fSubjectId, setFSubjectId] = useState('')
+  const [fActive, setFActive] = useState(true)
+  const [fMediaItems, setFMediaItems] = useState<MediaItem[]>([])
+  const [newMediaUrl, setNewMediaUrl] = useState('')
+  const [newMediaType, setNewMediaType] = useState<'video' | 'image' | 'embed'>('video')
+  const [newMediaCaption, setNewMediaCaption] = useState('')
+  const [copiedLink, setCopiedLink] = useState<string | null>(null)
+
   /* ── Auth guard ── */
   useEffect(() => {
     const t = sessionStorage.getItem('ph_teacher')
@@ -78,14 +94,16 @@ export default function TeacherDashboard() {
 
   /* ── Load data ── */
   const loadData = useCallback(async () => {
-    const [{ data: subs }, { data: projs }, { data: sbms }] = await Promise.all([
+    const [{ data: subs }, { data: projs }, { data: sbms }, { data: frms }] = await Promise.all([
       supabase.from('subjects').select('*').order('created_at'),
       supabase.from('projects').select('*').order('created_at'),
       supabase.from('submissions').select('*').order('created_at'),
+      supabase.from('forums').select('*').order('created_at'),
     ])
     if (subs) setSubjects(subs)
     if (projs) setProjects(projs)
     if (sbms) setSubmissions(sbms)
+    if (frms) setForums(frms)
   }, [supabase])
 
   useEffect(() => { if (teacher) loadData() }, [teacher, loadData])
@@ -333,6 +351,75 @@ export default function TeacherDashboard() {
     }
   }
 
+  /* ── Forum CRUD ── */
+  function openNewForum() {
+    setCurrentForumId(null)
+    setFTitle(''); setFDesc(''); setFSubjectId(''); setFActive(true); setFMediaItems([])
+    setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
+    setForumView('editor')
+  }
+
+  function openEditForum(f: Forum) {
+    setCurrentForumId(f.id)
+    setFTitle(f.title); setFDesc(f.description)
+    setFSubjectId(f.subject_id || ''); setFActive(f.is_active)
+    setFMediaItems(JSON.parse(JSON.stringify(f.media_items || [])))
+    setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
+    setForumView('editor')
+  }
+
+  async function saveForum() {
+    if (!fTitle.trim()) { showToast('포럼 제목을 입력하세요.'); return }
+    const payload = {
+      title: fTitle, description: fDesc,
+      subject_id: fSubjectId || null,
+      is_active: fActive, media_items: fMediaItems,
+    }
+    if (currentForumId) {
+      const { error } = await supabase.from('forums').update(payload).eq('id', currentForumId)
+      if (!error) {
+        setForums(prev => prev.map(f => f.id === currentForumId ? { ...f, ...payload } : f))
+        showToast('✅ 포럼이 저장되었습니다.')
+      }
+    } else {
+      const id = 'forum_' + Date.now()
+      const { error } = await supabase.from('forums').insert({ id, ...payload })
+      if (!error) {
+        setForums(prev => [...prev, { id, ...payload }])
+        setCurrentForumId(id)
+        showToast('✅ 포럼이 생성되었습니다.')
+      }
+    }
+  }
+
+  async function deleteForum(id: string) {
+    if (!confirm('포럼을 삭제할까요? 댓글도 모두 삭제됩니다.')) return
+    await supabase.from('forums').delete().eq('id', id)
+    setForums(prev => prev.filter(f => f.id !== id))
+    if (currentForumId === id) { setCurrentForumId(null); setForumView('list') }
+    showToast('🗑 포럼이 삭제되었습니다.')
+  }
+
+  function addMediaItem() {
+    if (!newMediaUrl.trim()) return
+    setFMediaItems(prev => [...prev, { type: newMediaType, url: newMediaUrl.trim(), caption: newMediaCaption.trim() }])
+    setNewMediaUrl(''); setNewMediaCaption('')
+  }
+  function removeMediaItem(i: number) { setFMediaItems(prev => prev.filter((_, idx) => idx !== i)) }
+  function moveMedia(i: number, dir: -1 | 1) {
+    const arr = [...fMediaItems]; const j = i + dir
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]]; setFMediaItems(arr)
+  }
+
+  function copyForumLink(id: string) {
+    const url = `${window.location.origin}/forum/${id}`
+    navigator.clipboard.writeText(url)
+    setCopiedLink(id)
+    setTimeout(() => setCopiedLink(null), 2000)
+    showToast('📋 링크가 복사되었습니다.')
+  }
+
   function getSubjectProjects() { return projects.filter(p => p.subject_id === currentSubjectId) }
 
   if (!teacher) return <div className="loading-center">로딩 중...</div>
@@ -364,6 +451,9 @@ export default function TeacherDashboard() {
         </button>
         <button className={`${styles.dashTab} ${dashTab === 'guidelines' ? styles.activeTab : ''}`} onClick={() => setDashTab('guidelines')}>
           📚 가이드라인 설정
+        </button>
+        <button className={`${styles.dashTab} ${dashTab === 'forums' ? styles.activeTab : ''}`} onClick={() => setDashTab('forums' as typeof dashTab)}>
+          🎬 포럼 관리
         </button>
       </div>
 
@@ -686,6 +776,145 @@ export default function TeacherDashboard() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Forums Pane ── */}
+      {dashTab === 'forums' && (
+        <div>
+          {forumView === 'list' && (
+            <div>
+              <div className={styles.forumListHeader}>
+                <div className={styles.sectionTitle}>🎬 포럼 목록</div>
+                <button className={styles.btnNewForum} onClick={openNewForum}>+ 새 포럼</button>
+              </div>
+              {forums.length === 0 ? (
+                <div className={styles.forumEmpty}>
+                  <div>🎬</div>
+                  <p>아직 포럼이 없습니다.<br/><strong>+ 새 포럼</strong>을 눌러 만들어보세요.</p>
+                </div>
+              ) : (
+                <div className={styles.forumCards}>
+                  {forums.map(f => (
+                    <div key={f.id} className={styles.forumCard}>
+                      <div className={styles.forumCardLeft}>
+                        <div className={styles.forumCardTitle}>{f.title}</div>
+                        <div className={styles.forumCardMeta}>
+                          {f.subject_id && <span>{subjects.find(s => s.id === f.subject_id)?.name}</span>}
+                          <span>{f.media_items?.length || 0}개 미디어</span>
+                          <span className={f.is_active ? styles.forumActiveBadge : styles.forumInactiveBadge}>
+                            {f.is_active ? '활성' : '비활성'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.forumCardActions}>
+                        <button className={styles.btnCopyLink} onClick={() => copyForumLink(f.id)}>
+                          {copiedLink === f.id ? '✅ 복사됨' : '🔗 링크 복사'}
+                        </button>
+                        <button className={styles.btnEditForum} onClick={() => openEditForum(f)}>편집</button>
+                        <button className={styles.btnDelForum} onClick={() => deleteForum(f.id)}>삭제</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {forumView === 'editor' && (
+            <div className={styles.forumEditor}>
+              <div className={styles.forumEditorHeader}>
+                <button className={styles.backLink} onClick={() => setForumView('list')}>← 목록으로</button>
+                <div className={styles.forumEditorTitle}>{currentForumId ? '포럼 편집' : '새 포럼 만들기'}</div>
+                <div className={styles.forumEditorActions}>
+                  {currentForumId && (
+                    <button className={styles.btnCopyLink} onClick={() => copyForumLink(currentForumId)}>
+                      {copiedLink === currentForumId ? '✅ 복사됨' : '🔗 학생 링크 복사'}
+                    </button>
+                  )}
+                  <button className={styles.btnGlSave} onClick={saveForum}>💾 저장</button>
+                </div>
+              </div>
+
+              <div className={styles.forumEditorBody}>
+                {/* 기본 정보 */}
+                <div className={styles.forumSection}>
+                  <div className={styles.forumSectionLabel}>기본 정보</div>
+                  <div className={styles.forumField}>
+                    <label>포럼 제목</label>
+                    <input value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="포럼 제목 입력" className={styles.forumInput} />
+                  </div>
+                  <div className={styles.forumField}>
+                    <label>설명 (선택)</label>
+                    <textarea value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="포럼에 대한 설명, 학습 목표 등" rows={3} className={styles.forumTextarea} />
+                  </div>
+                  <div className={styles.forumFieldRow}>
+                    <div className={styles.forumField}>
+                      <label>과목 (선택)</label>
+                      <select value={fSubjectId} onChange={e => setFSubjectId(e.target.value)} className={styles.forumSelect}>
+                        <option value="">과목 없음</option>
+                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className={styles.forumField}>
+                      <label>상태</label>
+                      <select value={fActive ? 'active' : 'inactive'} onChange={e => setFActive(e.target.value === 'active')} className={styles.forumSelect}>
+                        <option value="active">활성 (학생 접근 가능)</option>
+                        <option value="inactive">비활성 (숨김)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 미디어 목록 */}
+                <div className={styles.forumSection}>
+                  <div className={styles.forumSectionLabel}>미디어 목록 <span>{fMediaItems.length}개</span></div>
+                  {fMediaItems.length === 0 && (
+                    <div className={styles.mediaEmptyEditor}>아래에서 미디어를 추가하세요. (YouTube, 이미지 URL, 외부 링크 등)</div>
+                  )}
+                  <div className={styles.mediaEditorList}>
+                    {fMediaItems.map((m, i) => (
+                      <div key={i} className={styles.mediaEditorItem}>
+                        <div className={styles.mediaEditorNum}>{i + 1}</div>
+                        <div className={styles.mediaEditorInfo}>
+                          <span className={styles.mediaTypeBadge}>{m.type}</span>
+                          <span className={styles.mediaEditorUrl}>{m.url.length > 50 ? m.url.slice(0, 50) + '…' : m.url}</span>
+                          {m.caption && <span className={styles.mediaEditorCaption}>"{m.caption}"</span>}
+                        </div>
+                        <div className={styles.mediaEditorBtns}>
+                          <button className={styles.stageMoveBtn} disabled={i === 0} onClick={() => moveMedia(i, -1)}>↑</button>
+                          <button className={styles.stageMoveBtn} disabled={i === fMediaItems.length - 1} onClick={() => moveMedia(i, 1)}>↓</button>
+                          <button className={styles.stageDelBtn} onClick={() => removeMediaItem(i)}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 새 미디어 추가 */}
+                  <div className={styles.addMediaBox}>
+                    <div className={styles.addMediaRow}>
+                      <select value={newMediaType} onChange={e => setNewMediaType(e.target.value as MediaItem['type'])} className={styles.addMediaType}>
+                        <option value="video">🎬 영상</option>
+                        <option value="image">🖼 이미지</option>
+                        <option value="embed">🔗 임베드</option>
+                      </select>
+                      <input value={newMediaUrl} onChange={e => setNewMediaUrl(e.target.value)}
+                        placeholder="URL 입력 (YouTube, 이미지 URL 등)"
+                        className={styles.addMediaInput}
+                        onKeyDown={e => e.key === 'Enter' && addMediaItem()} />
+                    </div>
+                    <div className={styles.addMediaRow}>
+                      <input value={newMediaCaption} onChange={e => setNewMediaCaption(e.target.value)}
+                        placeholder="캡션 (선택)"
+                        className={styles.addMediaInput}
+                        onKeyDown={e => e.key === 'Enter' && addMediaItem()} />
+                      <button className={styles.btnAddMedia} onClick={addMediaItem}>+ 추가</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
