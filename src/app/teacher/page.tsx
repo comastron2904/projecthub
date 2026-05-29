@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import styles from './teacher.module.css'
@@ -9,11 +9,11 @@ interface Subject { id: string; name: string }
 interface StageItem { type: 'q' | 'd'; content: string }
 interface Stage { title: string; items: StageItem[] }
 interface Project { id: string; subject_id: string; title: string; description: string; stages: Stage[] }
+interface SubmissionFile { id: number; file_name: string; file_path: string; file_size: string; uploaded_at: string }
 interface Submission {
   id: number; year: number; grade: number; cls: number; no: number;
   student_id: string; student_name: string; subject_id: string; subject_name: string;
-  project_id: string; project_title: string; file_name: string | null;
-  file_size: string | null; file_path: string | null; submitted_at: string | null; submitted: boolean;
+  project_id: string; project_title: string; submitted_at: string | null; submitted: boolean;
 }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
@@ -52,12 +52,29 @@ export default function TeacherDashboard() {
   const [filteredSubs, setFilteredSubs] = useState<Submission[]>([])
   const [searched, setSearched] = useState(false)
 
+  // File dropdown
+  const [fileDropdownId, setFileDropdownId] = useState<number | null>(null)
+  const [fileDropdownData, setFileDropdownData] = useState<SubmissionFile[]>([])
+  const [fileDropdownLoading, setFileDropdownLoading] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
   /* ── Auth guard ── */
   useEffect(() => {
     const t = sessionStorage.getItem('ph_teacher')
     if (!t) { router.replace('/'); return }
     setTeacher(t)
   }, [router])
+
+  /* ── Close dropdown on outside click ── */
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setFileDropdownId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   /* ── Load data ── */
   const loadData = useCallback(async () => {
@@ -277,20 +294,30 @@ export default function TeacherDashboard() {
     showToast(`📥 ${s.student_name} 보고서를 다운로드했습니다.`)
   }
 
-  async function downloadStudentFile(s: Submission) {
-    if (!s.file_path) return
+  async function toggleFileDropdown(s: Submission) {
+    if (fileDropdownId === s.id) { setFileDropdownId(null); return }
+    setFileDropdownId(s.id)
+    setFileDropdownLoading(true)
+    setFileDropdownData([])
+    const { data } = await supabase.from('submission_files')
+      .select('id, file_name, file_path, file_size, uploaded_at')
+      .eq('student_id', s.student_id).eq('project_id', s.project_id)
+      .order('uploaded_at')
+    setFileDropdownData(data || [])
+    setFileDropdownLoading(false)
+  }
+
+  async function downloadStudentFile(file: SubmissionFile) {
     const { data, error } = await supabase.storage
-      .from('projecthub-files')
-      .download(s.file_path)
+      .from('projecthub-files').download(file.file_path)
     if (error || !data) { showToast('❌ 파일을 불러올 수 없습니다.'); return }
     const url = URL.createObjectURL(data)
     const a = document.createElement('a')
-    a.href = url
-    a.download = s.file_name || '첨부파일'
+    a.href = url; a.download = file.file_name
     document.body.appendChild(a); a.click()
     document.body.removeChild(a)
     setTimeout(() => URL.revokeObjectURL(url), 1000)
-    showToast(`📎 ${s.file_name} 다운로드 완료`)
+    showToast(`📎 ${file.file_name} 다운로드 완료`)
   }
 
   async function downloadAll() {
@@ -436,14 +463,41 @@ export default function TeacherDashboard() {
                               </button>
                             : <span className={styles.dlDisabled}>—</span>}
                         </td>
-                        <td>
-                          {s.file_path
-                            ? <button className={styles.btnDlFile} onClick={() => downloadStudentFile(s)}>
-                                📎 {s.file_name
-                                  ? (s.file_name.length > 12 ? s.file_name.slice(0, 12) + '…' : s.file_name)
-                                  : '파일'}
-                                {s.file_size && <span className={styles.fileSizeInBtn}>{s.file_size}</span>}
-                              </button>
+                        <td style={{ position: 'relative' }}>
+                          {s.submitted
+                            ? <div ref={fileDropdownId === s.id ? dropdownRef : null} style={{ position: 'relative', display: 'inline-block' }}>
+                                <button
+                                  className={`${styles.btnDlFile} ${fileDropdownId === s.id ? styles.btnDlFileActive : ''}`}
+                                  onClick={() => toggleFileDropdown(s)}
+                                >
+                                  📎 첨부파일 {fileDropdownId === s.id ? '▲' : '▼'}
+                                </button>
+                                {fileDropdownId === s.id && (
+                                  <div className={styles.fileDropdown}>
+                                    <div className={styles.fileDropdownHeader}>
+                                      {s.student_name}의 첨부파일
+                                    </div>
+                                    {fileDropdownLoading ? (
+                                      <div className={styles.fileDropdownEmpty}>불러오는 중...</div>
+                                    ) : fileDropdownData.length === 0 ? (
+                                      <div className={styles.fileDropdownEmpty}>첨부파일 없음</div>
+                                    ) : (
+                                      fileDropdownData.map(f => (
+                                        <div key={f.id} className={styles.fileDropdownItem} onClick={() => downloadStudentFile(f)}>
+                                          <div className={styles.fileDropdownItemLeft}>
+                                            <span className={styles.fileDropdownIcon}>📄</span>
+                                            <div>
+                                              <div className={styles.fileDropdownName}>{f.file_name}</div>
+                                              <div className={styles.fileDropdownMeta}>{f.file_size} · {f.uploaded_at}</div>
+                                            </div>
+                                          </div>
+                                          <span className={styles.fileDropdownDl}>⬇</span>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             : <span className={styles.dlDisabled}>—</span>}
                         </td>
                       </tr>
