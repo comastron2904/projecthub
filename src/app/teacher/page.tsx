@@ -15,7 +15,7 @@ interface Submission {
   student_id: string; student_name: string; subject_id: string; subject_name: string;
   project_id: string; project_title: string; submitted_at: string | null; submitted: boolean;
 }
-interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
+interface MediaItem { type: 'video' | 'image' | 'embed' | 'pdf' | 'slides'; url: string; caption: string }
 interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean; layout_media: number; layout_comment: number; comment_height: number; anonymous: boolean; password: string; notice: string }
 interface Poll { id: string; forum_id: string; question: string; poll_type: 'choice' | 'text'; options: string[]; time_limit: number | null; is_active: boolean; created_at: string }
 
@@ -71,8 +71,12 @@ export default function TeacherDashboard() {
   const [fActive, setFActive] = useState(true)
   const [fMediaItems, setFMediaItems] = useState<MediaItem[]>([])
   const [newMediaUrl, setNewMediaUrl] = useState('')
-  const [newMediaType, setNewMediaType] = useState<'video' | 'image' | 'embed'>('video')
+  const [newMediaType, setNewMediaType] = useState<'video' | 'image' | 'embed' | 'pdf' | 'slides'>('video')
   const [newMediaCaption, setNewMediaCaption] = useState('')
+  // 파일 업로드
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   // 레이아웃 설정 (미디어 비율 %, 댓글창 높이 px)
   const [fLayoutMedia, setFLayoutMedia] = useState(62)
@@ -372,6 +376,7 @@ export default function TeacherDashboard() {
     setCurrentForumId(null)
     setFTitle(''); setFDesc(''); setFSubjectId(''); setFActive(true); setFMediaItems([])
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
+    setUploadProgress(''); setUploadingFile(false)
     setFLayoutMedia(62); setFCommentHeight(70)
     setFAnonymous(false); setFPassword(''); setFNotice('')
     setForumView('editor')
@@ -388,6 +393,7 @@ export default function TeacherDashboard() {
     setFPassword(f.password ?? '')
     setFNotice(f.notice ?? '')
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
+    setUploadProgress(''); setUploadingFile(false)
     setPollView('list')
     loadPolls(f.id)
     setForumView('editor')
@@ -441,6 +447,30 @@ export default function TeacherDashboard() {
     const arr = [...fMediaItems]; const j = i + dir
     if (j < 0 || j >= arr.length) return;
     [arr[i], arr[j]] = [arr[j], arr[i]]; setFMediaItems(arr)
+  }
+
+  async function uploadMediaFile(file: File) {
+    if (!file) return
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    const isPdf = ext === 'pdf'
+    const isSlides = ['ppt', 'pptx', 'odp'].includes(ext)
+    if (!isPdf && !isSlides) { showToast('❌ PDF 또는 PPT/PPTX 파일만 업로드 가능합니다.'); return }
+
+    setUploadingFile(true)
+    setUploadProgress('업로드 중...')
+    const path = `forum-media/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    const { error } = await supabase.storage.from('projecthub-files').upload(path, file, { upsert: false })
+    if (error) { showToast('❌ 업로드 실패: ' + error.message); setUploadingFile(false); setUploadProgress(''); return }
+
+    const { data: urlData } = supabase.storage.from('projecthub-files').getPublicUrl(path)
+    const publicUrl = urlData.publicUrl
+    const type: MediaItem['type'] = isPdf ? 'pdf' : 'slides'
+    const caption = newMediaCaption.trim() || file.name.replace(/\.[^.]+$/, '')
+    setFMediaItems(prev => [...prev, { type, url: publicUrl, caption }])
+    setNewMediaCaption('')
+    setUploadProgress('')
+    setUploadingFile(false)
+    showToast(`✅ ${isPdf ? 'PDF' : '슬라이드'} 업로드 완료`)
   }
 
   function copyForumLink(id: string) {
@@ -1026,7 +1056,9 @@ export default function TeacherDashboard() {
                       <div key={i} className={styles.mediaEditorItem}>
                         <div className={styles.mediaEditorNum}>{i + 1}</div>
                         <div className={styles.mediaEditorInfo}>
-                          <span className={styles.mediaTypeBadge}>{m.type}</span>
+                          <span className={styles.mediaTypeBadge}>
+                            {m.type === 'pdf' ? '📄 PDF' : m.type === 'slides' ? '📊 슬라이드' : m.type === 'video' ? '🎬 영상' : m.type === 'image' ? '🖼 이미지' : '🔗 임베드'}
+                          </span>
                           <span className={styles.mediaEditorUrl}>{m.url.length > 50 ? m.url.slice(0, 50) + '…' : m.url}</span>
                           {m.caption && <span className={styles.mediaEditorCaption}>"{m.caption}"</span>}
                         </div>
@@ -1041,14 +1073,18 @@ export default function TeacherDashboard() {
 
                   {/* 새 미디어 추가 */}
                   <div className={styles.addMediaBox}>
+                    {/* URL 입력 방식 */}
+                    <div className={styles.addMediaSectionLabel}>🔗 URL로 추가</div>
                     <div className={styles.addMediaRow}>
                       <select value={newMediaType} onChange={e => setNewMediaType(e.target.value as MediaItem['type'])} className={styles.addMediaType}>
                         <option value="video">🎬 영상</option>
                         <option value="image">🖼 이미지</option>
                         <option value="embed">🔗 임베드</option>
+                        <option value="pdf">📄 PDF URL</option>
+                        <option value="slides">📊 슬라이드 URL</option>
                       </select>
                       <input value={newMediaUrl} onChange={e => setNewMediaUrl(e.target.value)}
-                        placeholder="URL 입력 (YouTube, 이미지 URL 등)"
+                        placeholder="YouTube, 이미지, PDF, Google Slides URL 등"
                         className={styles.addMediaInput}
                         onKeyDown={e => e.key === 'Enter' && addMediaItem()} />
                     </div>
@@ -1059,6 +1095,34 @@ export default function TeacherDashboard() {
                         onKeyDown={e => e.key === 'Enter' && addMediaItem()} />
                       <button className={styles.btnAddMedia} onClick={addMediaItem}>+ 추가</button>
                     </div>
+
+                    {/* 파일 업로드 방식 */}
+                    <div className={styles.addMediaDivider} />
+                    <div className={styles.addMediaSectionLabel}>📁 파일 직접 업로드 <span style={{fontWeight:400, color:'var(--text-hint)'}}>PDF · PPT · PPTX</span></div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.ppt,.pptx,.odp"
+                      style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadMediaFile(f); e.target.value = '' }}
+                    />
+                    <div className={styles.addMediaRow}>
+                      <input value={newMediaCaption} onChange={e => setNewMediaCaption(e.target.value)}
+                        placeholder="파일 캡션 (선택, 비우면 파일명 사용)"
+                        className={styles.addMediaInput} />
+                      <button
+                        className={styles.btnUploadFile}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingFile}
+                      >
+                        {uploadingFile ? (uploadProgress || '업로드 중...') : '📁 파일 선택'}
+                      </button>
+                    </div>
+                    {uploadingFile && (
+                      <div className={styles.uploadProgressBar}>
+                        <div className={styles.uploadProgressFill} />
+                      </div>
+                    )}
                   </div>
                 </div>
 
