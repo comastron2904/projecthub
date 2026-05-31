@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import styles from './forum.module.css'
 
-interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
+interface MediaItem { type: 'video' | 'image' | 'embed' | 'pdf' | 'slides'; url: string; caption: string }
 interface Forum {
   id: string; title: string; description: string; media_items: MediaItem[]
   layout_media: number; layout_comment: number; comment_height: number
@@ -21,13 +21,83 @@ interface Poll {
 }
 interface PollResponse { id: number; poll_id: string; student_id: string; student_name: string; answer: string }
 
-function MediaRenderer({ item }: { item: MediaItem }) {
-  function toYouTubeEmbed(url: string) {
-    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/)
-    return m ? `https://www.youtube.com/embed/${m[1]}` : null
+function toYouTubeEmbed(url: string) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/)
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null
+}
+function isVideoFile(url: string) { return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url) }
+function isImageFile(url: string) { return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url) }
+
+function DocViewer({ item }: { item: MediaItem }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!containerRef.current) return
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
   }
-  function isVideoFile(url: string) { return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url) }
-  function isImageFile(url: string) { return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url) }
+
+  // PDF: Google Docs Viewer로 렌더링 (슬라이드 넘기기 내장)
+  if (item.type === 'pdf') {
+    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(item.url)}&embedded=true`
+    return (
+      <div className={styles.docViewerWrap} ref={containerRef}>
+        <div className={styles.docViewerToolbar}>
+          <span className={styles.docViewerBadge}>📄 PDF</span>
+          {item.caption && <span className={styles.docViewerCaption}>{item.caption}</span>}
+          <button className={styles.docViewerFsBtn} onClick={toggleFullscreen} title="전체화면">
+            {isFullscreen ? '⛶ 전체화면 종료' : '⛶ 전체화면'}
+          </button>
+        </div>
+        <iframe
+          className={styles.docViewerFrame}
+          src={viewerUrl}
+          allowFullScreen
+        />
+      </div>
+    )
+  }
+
+  // Slides (PPT/PPTX/Google Slides): Google Slides Viewer
+  if (item.type === 'slides') {
+    // Google Slides 공유 URL이면 embed URL로 변환
+    let embedUrl = item.url
+    if (item.url.includes('docs.google.com/presentation')) {
+      embedUrl = item.url.replace(/\/pub(\?|$)/, '/embed$1').replace(/\/edit(\?|$)/, '/embed$1').replace(/\/preview(\?|$)/, '/embed$1')
+      if (!embedUrl.includes('/embed')) embedUrl = embedUrl.replace(/\/(presentation\/d\/[^/]+).*/, '/$1/embed')
+    } else {
+      // PPT/PPTX 파일 URL → Office Online Viewer
+      embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(item.url)}&embedded=true`
+    }
+    return (
+      <div className={styles.docViewerWrap} ref={containerRef}>
+        <div className={styles.docViewerToolbar}>
+          <span className={styles.docViewerBadge} style={{ background: '#ea580c' }}>📊 슬라이드</span>
+          {item.caption && <span className={styles.docViewerCaption}>{item.caption}</span>}
+          <button className={styles.docViewerFsBtn} onClick={toggleFullscreen} title="전체화면">
+            {isFullscreen ? '⛶ 전체화면 종료' : '⛶ 전체화면'}
+          </button>
+        </div>
+        <iframe
+          className={styles.docViewerFrame}
+          src={embedUrl}
+          allowFullScreen
+        />
+      </div>
+    )
+  }
+
+  // 기존 미디어 타입
   const ytEmbed = item.type === 'video' ? toYouTubeEmbed(item.url) : null
   return (
     <div className={styles.mediaBlock}>
@@ -798,7 +868,7 @@ export default function ForumPage() {
           ) : (
             <>
               <div className={styles.mediaMain}>
-                <MediaRenderer item={mediaItems[activeMedia]} />
+                <DocViewer item={mediaItems[activeMedia]} />
               </div>
               {mediaItems.length > 1 && (
                 <div className={styles.mediaThumbs}>
@@ -806,7 +876,7 @@ export default function ForumPage() {
                     <button key={i}
                       className={`${styles.mediaThumb} ${activeMedia === i ? styles.mediaThumbActive : ''}`}
                       onClick={() => setActiveMedia(i)}>
-                      {item.type === 'image' ? '🖼' : item.type === 'video' ? '▶' : '🔗'}
+                      {item.type === 'image' ? '🖼' : item.type === 'video' ? '▶' : item.type === 'pdf' ? '📄' : item.type === 'slides' ? '📊' : '🔗'}
                       <span>{item.caption || `미디어 ${i + 1}`}</span>
                     </button>
                   ))}
