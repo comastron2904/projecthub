@@ -31,12 +31,38 @@ function isImageFile(url: string) { return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/
 function DocViewer({ item }: { item: MediaItem }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [urlStatus, setUrlStatus] = useState<'checking' | 'ok' | 'error'>('checking')
+  const [urlError, setUrlError] = useState('')
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', handler)
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
+
+  // PDF/슬라이드 URL이 실제로 접근 가능한지 HEAD 요청으로 확인
+  useEffect(() => {
+    if (item.type !== 'pdf' && item.type !== 'slides') return
+    // Google Slides는 별도 확인 불필요
+    if (item.type === 'slides' && item.url.includes('docs.google.com')) {
+      setUrlStatus('ok'); return
+    }
+    setUrlStatus('checking')
+    fetch(item.url, { method: 'HEAD' })
+      .then(res => {
+        if (res.ok) {
+          setUrlStatus('ok')
+        } else {
+          res.text().catch(() => '')
+          setUrlError(`파일을 불러올 수 없습니다 (${res.status}). Supabase Storage 버킷이 Public으로 설정되어 있는지 확인하세요.`)
+          setUrlStatus('error')
+        }
+      })
+      .catch(() => {
+        // CORS로 HEAD가 막혀도 일단 시도 (브라우저가 직접 렌더링)
+        setUrlStatus('ok')
+      })
+  }, [item.url, item.type])
 
   function toggleFullscreen() {
     if (!containerRef.current) return
@@ -47,7 +73,7 @@ function DocViewer({ item }: { item: MediaItem }) {
     }
   }
 
-  // PDF: 브라우저 내장 PDF 렌더러 사용 (CORS 없음, 슬라이드 넘기기 내장)
+  // PDF
   if (item.type === 'pdf') {
     return (
       <div className={styles.docViewerWrap} ref={containerRef}>
@@ -59,11 +85,27 @@ function DocViewer({ item }: { item: MediaItem }) {
             {isFullscreen ? '⛶ 종료' : '⛶ 전체화면'}
           </button>
         </div>
-        <embed
-          className={styles.docViewerFrame}
-          src={`${item.url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-          type="application/pdf"
-        />
+        {urlStatus === 'checking' && (
+          <div className={styles.docViewerLoading}>⏳ 파일 로딩 중...</div>
+        )}
+        {urlStatus === 'error' && (
+          <div className={styles.docViewerError}>
+            <div className={styles.docViewerErrorIcon}>⚠️</div>
+            <div className={styles.docViewerErrorMsg}>{urlError}</div>
+            <div className={styles.docViewerErrorHint}>
+              Supabase Dashboard → Storage → <strong>projecthub-files</strong> 버킷 선택 →<br />
+              우측 상단 <strong>Make Public</strong> 클릭 후 다시 시도하세요.
+            </div>
+            <a className={styles.docViewerErrorLink} href={item.url} target="_blank" rel="noreferrer">↗ URL 직접 열기</a>
+          </div>
+        )}
+        {urlStatus === 'ok' && (
+          <iframe
+            className={styles.docViewerFrame}
+            src={`${item.url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+            title={item.caption || 'PDF'}
+          />
+        )}
       </div>
     )
   }
@@ -72,7 +114,6 @@ function DocViewer({ item }: { item: MediaItem }) {
   if (item.type === 'slides') {
     let embedUrl = item.url
     if (item.url.includes('docs.google.com/presentation')) {
-      // Google Slides 공유 URL → embed URL로 변환
       embedUrl = item.url
         .replace(/\/pub(\?|$)/, '/embed$1')
         .replace(/\/edit(\?|$)/, '/embed$1')
@@ -89,16 +130,33 @@ function DocViewer({ item }: { item: MediaItem }) {
         <div className={styles.docViewerToolbar}>
           <span className={styles.docViewerBadge} style={{ background: '#ea580c' }}>📊 슬라이드</span>
           {item.caption && <span className={styles.docViewerCaption}>{item.caption}</span>}
-          <a className={styles.docViewerFsBtn} href={item.url} target="_blank" rel="noreferrer" title="새 탭에서 열기">↗ 새 탭</a>
-          <button className={styles.docViewerFsBtn} onClick={toggleFullscreen} title="전체화면">
+          <a className={styles.docViewerFsBtn} href={item.url} target="_blank" rel="noreferrer">↗ 새 탭</a>
+          <button className={styles.docViewerFsBtn} onClick={toggleFullscreen}>
             {isFullscreen ? '⛶ 종료' : '⛶ 전체화면'}
           </button>
         </div>
-        <iframe
-          className={styles.docViewerFrame}
-          src={embedUrl}
-          allowFullScreen
-        />
+        {urlStatus === 'checking' && (
+          <div className={styles.docViewerLoading}>⏳ 파일 로딩 중...</div>
+        )}
+        {urlStatus === 'error' && (
+          <div className={styles.docViewerError}>
+            <div className={styles.docViewerErrorIcon}>⚠️</div>
+            <div className={styles.docViewerErrorMsg}>{urlError}</div>
+            <div className={styles.docViewerErrorHint}>
+              Supabase Dashboard → Storage → <strong>projecthub-files</strong> 버킷 선택 →<br />
+              우측 상단 <strong>Make Public</strong> 클릭 후 다시 시도하세요.
+            </div>
+            <a className={styles.docViewerErrorLink} href={item.url} target="_blank" rel="noreferrer">↗ URL 직접 열기</a>
+          </div>
+        )}
+        {urlStatus === 'ok' && (
+          <iframe
+            className={styles.docViewerFrame}
+            src={embedUrl}
+            allowFullScreen
+            title={item.caption || '슬라이드'}
+          />
+        )}
       </div>
     )
   }
