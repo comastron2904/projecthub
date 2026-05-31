@@ -238,11 +238,17 @@ export default function ForumPage() {
         const updated = payload.new as Poll
         setAllPolls(prev => prev.map(p => p.id === updated.id ? updated : p))
         if (updated.is_active) {
-          setActivePoll(updated)
-          setPollSubmitted(false)
-          setPollAnswer('')
-          setStudentClosedResult(false)  // 새 설문이면 결과 닫힘 상태 리셋
-          setStudentClosedPoll(false)
+          setActivePoll(prev => {
+            // 이전과 다른 설문 ID일 때만 "새 설문"으로 간주하여 닫힘 상태 리셋
+            const isNewPoll = prev?.id !== updated.id
+            if (isNewPoll) {
+              setPollSubmitted(false)
+              setPollAnswer('')
+              setStudentClosedResult(false)
+              setStudentClosedPoll(false)
+            }
+            return updated
+          })
         } else {
           setActivePoll(prev => {
             if (prev?.id === updated.id) {
