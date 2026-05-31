@@ -17,6 +17,8 @@ interface Submission {
 }
 interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
 interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean; layout_media: number; layout_comment: number; comment_height: number; anonymous: boolean; password: string; notice: string }
+interface Poll { id: string; forum_id: string; question: string; poll_type: 'choice' | 'text'; options: string[]; time_limit: number | null; is_active: boolean; created_at: string }
+interface PollResponse { id: number; poll_id: string; student_id: string; student_name: string; answer: string }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 
@@ -79,6 +81,18 @@ export default function TeacherDashboard() {
   const [fAnonymous, setFAnonymous] = useState(false)
   const [fPassword, setFPassword] = useState('')
   const [fNotice, setFNotice] = useState('')
+
+  // Poll state
+  const [polls, setPolls] = useState<Poll[]>([])
+  const [pollResponses, setPollResponses] = useState<PollResponse[]>([])
+  const [pollView, setPollView] = useState<'list' | 'creator'>('list')
+  const [currentPollId, setCurrentPollId] = useState<string | null>(null)
+  const [pQuestion, setPQuestion] = useState('')
+  const [pType, setPType] = useState<'choice' | 'text'>('choice')
+  const [pOptions, setPOptions] = useState<string[]>(['', ''])
+  const [pTimeLimit, setPTimeLimit] = useState<string>('') // empty = no limit
+  const [resultPollId, setResultPollId] = useState<string | null>(null)
+  const [launchingPollId, setLaunchingPollId] = useState<string | null>(null)
 
   /* ── Auth guard ── */
   useEffect(() => {
@@ -378,6 +392,8 @@ export default function TeacherDashboard() {
     setFPassword(f.password ?? '')
     setFNotice(f.notice ?? '')
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
+    setPollView('list')
+    loadPolls(f.id)
     setForumView('editor')
   }
 
@@ -437,6 +453,97 @@ export default function TeacherDashboard() {
     setCopiedLink(id)
     setTimeout(() => setCopiedLink(null), 2000)
     showToast('📋 링크가 복사되었습니다.')
+  }
+
+  /* ── Poll CRUD ── */
+  async function loadPolls(forumId: string) {
+    const { data } = await supabase.from('forum_polls').select('*').eq('forum_id', forumId).order('created_at')
+    if (data) setPolls(data)
+  }
+
+  function openPollCreator(poll?: Poll) {
+    if (poll) {
+      setCurrentPollId(poll.id)
+      setPQuestion(poll.question)
+      setPType(poll.poll_type)
+      setPOptions(poll.options.length ? poll.options : ['', ''])
+      setPTimeLimit(poll.time_limit ? String(poll.time_limit) : '')
+    } else {
+      setCurrentPollId(null)
+      setPQuestion('')
+      setPType('choice')
+      setPOptions(['', ''])
+      setPTimeLimit('')
+    }
+    setPollView('creator')
+  }
+
+  async function savePoll() {
+    if (!pQuestion.trim()) { showToast('질문을 입력하세요.'); return }
+    if (!currentForumId) { showToast('포럼을 먼저 저장하세요.'); return }
+    if (pType === 'choice') {
+      const validOpts = pOptions.filter(o => o.trim())
+      if (validOpts.length < 2) { showToast('선택지를 2개 이상 입력하세요.'); return }
+    }
+    const payload = {
+      forum_id: currentForumId,
+      question: pQuestion.trim(),
+      poll_type: pType,
+      options: pType === 'choice' ? pOptions.filter(o => o.trim()) : [],
+      time_limit: pTimeLimit ? Number(pTimeLimit) : null,
+      is_active: false,
+    }
+    if (currentPollId) {
+      const { error } = await supabase.from('forum_polls').update(payload).eq('id', currentPollId)
+      if (!error) {
+        setPolls(prev => prev.map(p => p.id === currentPollId ? { ...p, ...payload } : p))
+        showToast('✅ 설문조사가 수정되었습니다.')
+        setPollView('list')
+      }
+    } else {
+      const id = 'poll_' + Date.now()
+      const { error } = await supabase.from('forum_polls').insert({ id, ...payload })
+      if (!error) {
+        setPolls(prev => [...prev, { id, ...payload, created_at: new Date().toISOString() }])
+        showToast('✅ 설문조사가 추가되었습니다.')
+        setPollView('list')
+      }
+    }
+  }
+
+  async function deletePoll(id: string) {
+    if (!confirm('설문조사를 삭제할까요?')) return
+    await supabase.from('forum_polls').delete().eq('id', id)
+    setPolls(prev => prev.filter(p => p.id !== id))
+    showToast('🗑 설문조사가 삭제되었습니다.')
+  }
+
+  async function launchPoll(pollId: string) {
+    if (launchingPollId) return
+    setLaunchingPollId(pollId)
+    // 먼저 모든 설문 비활성화
+    await supabase.from('forum_polls').update({ is_active: false }).eq('forum_id', currentForumId!)
+    // 해당 설문 활성화
+    const { error } = await supabase.from('forum_polls').update({ is_active: true }).eq('id', pollId)
+    // 응답 초기화
+    await supabase.from('forum_poll_responses').delete().eq('poll_id', pollId)
+    if (!error) {
+      setPolls(prev => prev.map(p => ({ ...p, is_active: p.id === pollId })))
+      showToast('📢 설문조사가 학생들에게 전송되었습니다!')
+    }
+    setLaunchingPollId(null)
+  }
+
+  async function closePoll(pollId: string) {
+    await supabase.from('forum_polls').update({ is_active: false }).eq('id', pollId)
+    setPolls(prev => prev.map(p => p.id === pollId ? { ...p, is_active: false } : p))
+    showToast('🔚 설문조사가 종료되었습니다.')
+  }
+
+  async function openPollResult(pollId: string) {
+    const { data } = await supabase.from('forum_poll_responses').select('*').eq('poll_id', pollId)
+    if (data) setPollResponses(data)
+    setResultPollId(pollId)
   }
 
   function getSubjectProjects() { return projects.filter(p => p.subject_id === currentSubjectId) }
@@ -986,6 +1093,204 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* ── 설문조사 섹션 ── */}
+                {currentForumId && (
+                  <div className={styles.forumSection}>
+                    <div className={styles.forumSectionLabel}>
+                      📊 실시간 설문조사 <span>{polls.length}개</span>
+                    </div>
+
+                    {/* 결과 팝업 */}
+                    {resultPollId && (() => {
+                      const rPoll = polls.find(p => p.id === resultPollId)
+                      if (!rPoll) return null
+                      return (
+                        <div className={styles.pollResultOverlay} onClick={() => setResultPollId(null)}>
+                          <div className={styles.pollResultBox} onClick={e => e.stopPropagation()}>
+                            <div className={styles.pollResultHeader}>
+                              <span className={styles.pollResultTitle}>📊 응답 결과</span>
+                              <button className={styles.pollResultClose} onClick={() => setResultPollId(null)}>✕</button>
+                            </div>
+                            <div className={styles.pollResultQuestion}>{rPoll.question}</div>
+                            <div className={styles.pollResultCount}>{pollResponses.length}명 응답</div>
+                            {rPoll.poll_type === 'choice' ? (
+                              <div className={styles.pollResultBars}>
+                                {rPoll.options.map((opt, i) => {
+                                  const cnt = pollResponses.filter(r => r.answer === opt).length
+                                  const pct = pollResponses.length ? Math.round(cnt / pollResponses.length * 100) : 0
+                                  return (
+                                    <div key={i} className={styles.pollBar}>
+                                      <div className={styles.pollBarLabel}>{opt}</div>
+                                      <div className={styles.pollBarTrack}>
+                                        <div className={styles.pollBarFill} style={{ width: `${pct}%` }} />
+                                      </div>
+                                      <div className={styles.pollBarStat}>{cnt}명 ({pct}%)</div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            ) : (
+                              <div className={styles.pollTextAnswers}>
+                                {pollResponses.length === 0
+                                  ? <div className={styles.pollNoAnswer}>아직 응답이 없습니다.</div>
+                                  : pollResponses.map((r, i) => (
+                                    <div key={i} className={styles.pollTextAnswer}>
+                                      <span className={styles.pollTextAnswerName}>{r.student_name}</span>
+                                      <span className={styles.pollTextAnswerText}>{r.answer}</span>
+                                    </div>
+                                  ))
+                                }
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {pollView === 'list' && (
+                      <>
+                        {polls.length === 0 && (
+                          <div className={styles.pollEmpty}>아직 설문조사가 없습니다. 아래 버튼으로 추가하세요.</div>
+                        )}
+                        <div className={styles.pollList}>
+                          {polls.map(poll => (
+                            <div key={poll.id} className={`${styles.pollItem} ${poll.is_active ? styles.pollItemActive : ''}`}>
+                              <div className={styles.pollItemLeft}>
+                                <span className={styles.pollTypeBadge}>{poll.poll_type === 'choice' ? '선택형' : '단답형'}</span>
+                                {poll.time_limit && <span className={styles.pollTimeBadge}>⏱ {poll.time_limit}초</span>}
+                                {poll.is_active && <span className={styles.pollActiveBadge}>🔴 진행중</span>}
+                                <span className={styles.pollItemQ}>{poll.question}</span>
+                              </div>
+                              <div className={styles.pollItemActions}>
+                                <button className={styles.btnPollResult} onClick={() => openPollResult(poll.id)}>📊 결과</button>
+                                {poll.is_active
+                                  ? <button className={styles.btnPollStop} onClick={() => closePoll(poll.id)}>🔚 종료</button>
+                                  : <button className={styles.btnPollLaunch} onClick={() => launchPoll(poll.id)} disabled={launchingPollId === poll.id}>
+                                      {launchingPollId === poll.id ? '전송중...' : '📢 실시'}
+                                    </button>
+                                }
+                                <button className={styles.btnPollEdit} onClick={() => openPollCreator(poll)}>✏️</button>
+                                <button className={styles.stageDelBtn} onClick={() => deletePoll(poll.id)}>✕</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button className={styles.btnAddPoll} onClick={() => openPollCreator()}>+ 설문조사 추가</button>
+                      </>
+                    )}
+
+                    {pollView === 'creator' && (
+                      <div className={styles.pollCreator}>
+                        <div className={styles.pollCreatorHeader}>
+                          <span>{currentPollId ? '설문조사 편집' : '새 설문조사'}</span>
+                          <button className={styles.pollCreatorBack} onClick={() => setPollView('list')}>← 목록</button>
+                        </div>
+
+                        {/* 질문 유형 선택 */}
+                        <div className={styles.forumField}>
+                          <label>질문 유형</label>
+                          <div className={styles.pollTypeSelector}>
+                            <button
+                              className={`${styles.pollTypeBtn} ${pType === 'choice' ? styles.pollTypeBtnActive : ''}`}
+                              onClick={() => setPType('choice')}
+                            >
+                              <span className={styles.pollTypeBtnIcon}>☑️</span>
+                              <div>
+                                <div className={styles.pollTypeBtnLabel}>선택형</div>
+                                <div className={styles.pollTypeBtnDesc}>미리 만든 선택지 중 하나를 고르는 방식</div>
+                              </div>
+                            </button>
+                            <button
+                              className={`${styles.pollTypeBtn} ${pType === 'text' ? styles.pollTypeBtnActive : ''}`}
+                              onClick={() => setPType('text')}
+                            >
+                              <span className={styles.pollTypeBtnIcon}>✏️</span>
+                              <div>
+                                <div className={styles.pollTypeBtnLabel}>단답형</div>
+                                <div className={styles.pollTypeBtnDesc}>학생이 직접 답을 입력하는 방식</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 질문 내용 */}
+                        <div className={styles.forumField}>
+                          <label>질문 내용</label>
+                          <textarea
+                            value={pQuestion}
+                            onChange={e => setPQuestion(e.target.value)}
+                            placeholder="학생들에게 보여줄 질문을 입력하세요"
+                            rows={2}
+                            className={styles.forumTextarea}
+                          />
+                        </div>
+
+                        {/* 제한 시간 */}
+                        <div className={styles.forumField}>
+                          <label>제한 시간 <span className={styles.fieldOptional}>(비워두면 없음)</span></label>
+                          <div className={styles.pollTimeLimitRow}>
+                            {['', '30', '60', '90', '120', '180', '300'].map(v => (
+                              <button key={v}
+                                className={`${styles.pollTimeLimitBtn} ${pTimeLimit === v ? styles.pollTimeLimitBtnActive : ''}`}
+                                onClick={() => setPTimeLimit(v)}
+                              >
+                                {v === '' ? '없음' : `${v}초`}
+                              </button>
+                            ))}
+                            <input
+                              type="number"
+                              value={pTimeLimit}
+                              onChange={e => setPTimeLimit(e.target.value)}
+                              placeholder="직접입력(초)"
+                              className={styles.pollTimeLimitInput}
+                              min={10}
+                            />
+                          </div>
+                        </div>
+
+                        {/* 선택지 (선택형만) */}
+                        {pType === 'choice' && (
+                          <div className={styles.forumField}>
+                            <label>선택지 (최소 2개)</label>
+                            <div className={styles.pollOptionsList}>
+                              {pOptions.map((opt, i) => (
+                                <div key={i} className={styles.pollOptionRow}>
+                                  <span className={styles.pollOptionNum}>{String.fromCharCode(65 + i)}</span>
+                                  <input
+                                    value={opt}
+                                    onChange={e => {
+                                      const arr = [...pOptions]
+                                      arr[i] = e.target.value
+                                      setPOptions(arr)
+                                    }}
+                                    placeholder={`선택지 ${String.fromCharCode(65 + i)}`}
+                                    className={styles.pollOptionInput}
+                                  />
+                                  {pOptions.length > 2 && (
+                                    <button className={styles.pollOptionDel} onClick={() => setPOptions(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
+                                  )}
+                                </div>
+                              ))}
+                              {pOptions.length < 6 && (
+                                <button className={styles.btnAddOption} onClick={() => setPOptions(prev => [...prev, ''])}>+ 선택지 추가</button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={styles.pollCreatorFooter}>
+                          <button className={styles.btnGlSave} onClick={savePoll}>💾 저장</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!currentForumId && (
+                  <div className={styles.pollSaveFirst}>
+                    💡 포럼을 먼저 저장하면 설문조사를 추가할 수 있습니다.
+                  </div>
+                )}
               </div>
             </div>
           )}
