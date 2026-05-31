@@ -137,6 +137,8 @@ export default function ForumPage() {
   // 결과 공개: 학생이 직접 팝업 닫았는지 여부 (닫은 후엔 재등장 X)
   const [studentClosedResult, setStudentClosedResult] = useState(false)
   const [studentClosedPoll, setStudentClosedPoll] = useState(false)
+  // 교사용 결과 팝업 표시 여부
+  const [teacherShowResultPopup, setTeacherShowResultPopup] = useState(false)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   /* ── Auth ── */
@@ -348,6 +350,7 @@ export default function ForumPage() {
     setPollResponses([])
     setStudentClosedResult(false)
     setStudentClosedPoll(false)
+    setTeacherShowResultPopup(false)
     setShowPollPanel(false)
     setLaunchingId(null)
   }
@@ -368,12 +371,14 @@ export default function ForumPage() {
     if (!activePoll) return
     await supabase.from('forum_polls').update({ show_result: true }).eq('id', activePoll.id)
     setActivePoll(prev => prev ? { ...prev, show_result: true } : null)
+    setTeacherShowResultPopup(true)
   }
 
   async function hidePollResult() {
     if (!activePoll) return
     await supabase.from('forum_polls').update({ show_result: false }).eq('id', activePoll.id)
     setActivePoll(prev => prev ? { ...prev, show_result: false } : null)
+    setTeacherShowResultPopup(false)
     // 설문이 이미 종료됐다면 activePoll도 클리어
     if (!activePoll.is_active) {
       setActivePoll(null)
@@ -585,10 +590,31 @@ export default function ForumPage() {
     )
   }
 
+  /* ── 교사용 결과 팝업 ── */
+  function renderTeacherResultPopup() {
+    if (!isTeacher || !activePoll || !teacherShowResultPopup) return null
+    const total = pollResponses.length
+    return (
+      <div className={styles.pollOverlay}>
+        <div className={styles.pollBox}>
+          <div className={styles.pollBoxHeader}>
+            <span className={styles.pollBoxBadge} style={{ background: '#0f766e' }}>📊 설문 결과 (미리보기)</span>
+            <button className={styles.pollResultCloseBtn} onClick={() => setTeacherShowResultPopup(false)}>✕ 닫기</button>
+          </div>
+          <div className={styles.pollQuestion}>{activePoll.question}</div>
+          <div className={styles.pollResultMeta}>{total}명 응답</div>
+          {renderResultContent(activePoll, pollResponses, total)}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.page}>
       {/* 학생용 설문 팝업 */}
       {renderStudentPoll()}
+      {/* 교사용 결과 팝업 */}
+      {renderTeacherResultPopup()}
 
       {/* Topbar */}
       <div className={styles.topbar}>
