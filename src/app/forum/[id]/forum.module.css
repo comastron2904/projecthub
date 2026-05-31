@@ -789,3 +789,32 @@
 .docViewerWrap:fullscreen .docViewerFrame {
   height: calc(100vh - 44px);
 }
+.docViewerLoading {
+  display: flex; align-items: center; justify-content: center;
+  height: 72vh; color: rgba(255,255,255,0.5); font-size: 0.9rem;
+  gap: 0.5rem;
+}
+.docViewerError {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 72vh; padding: 2rem; text-align: center; gap: 0.85rem;
+  background: #f9fafb;
+}
+.docViewerErrorIcon { font-size: 2.5rem; }
+.docViewerErrorMsg {
+  font-size: 0.88rem; color: #b91c1c; font-weight: 600;
+  max-width: 440px; line-height: 1.5;
+}
+.docViewerErrorHint {
+  font-size: 0.82rem; color: #6b7280; line-height: 1.7;
+  background: #f3f4f6; border: 1px solid #e5e7eb;
+  border-radius: 10px; padding: 0.85rem 1.1rem; max-width: 440px;
+}
+.docViewerErrorHint strong { color: #1f2937; }
+.docViewerErrorLink {
+  display: inline-block; margin-top: 0.25rem;
+  padding: 0.45rem 1rem; border: 1.5px solid #d1d5db;
+  border-radius: 8px; background: white; color: #374151;
+  font-size: 0.82rem; font-weight: 600; text-decoration: none;
+  transition: all 0.15s;
+}
+.docViewerErrorLink:hover { border-color: #6b7280; color: #111; }
