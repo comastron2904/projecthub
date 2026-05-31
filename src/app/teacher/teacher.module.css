@@ -276,3 +276,8 @@
   cursor: pointer; transition: all 0.15s;
 }
 .backLink:hover { border-color: var(--text-main); color: var(--text-main); }
+
+.fieldOptional { font-size: 0.7rem; font-weight: 400; color: var(--text-hint); margin-left: 4px; }
+
+.btnOpenForum { padding: 0.38rem 0.85rem; background: var(--student); color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap; }
+.btnOpenForum:hover { background: #1e4029; }
