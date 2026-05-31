@@ -332,7 +332,14 @@ export default function ForumPage() {
     await supabase.from('forum_polls').update({ is_active: false, show_result: false }).eq('forum_id', forumId)
     await supabase.from('forum_poll_responses').delete().eq('poll_id', pollId)
     await supabase.from('forum_polls').update({ is_active: true, show_result: false }).eq('id', pollId)
-    setAllPolls(prev => prev.map(p => ({ ...p, is_active: p.id === pollId, show_result: false })))
+    // Realtime과 무관하게 로컬 state 즉시 반영
+    const target = allPolls.find(p => p.id === pollId)
+    if (target) {
+      const launched = { ...target, is_active: true, show_result: false }
+      setActivePoll(launched)
+      setAllPolls(prev => prev.map(p => ({ ...p, is_active: p.id === pollId, show_result: false })))
+    }
+    setPollResponses([])
     setStudentClosedResult(false)
     setStudentClosedPoll(false)
     setShowPollPanel(false)
