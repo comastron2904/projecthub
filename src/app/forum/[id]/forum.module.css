@@ -731,9 +731,6 @@
   border-radius: 0;
   background: #000;
 }
-.docViewerWrap:fullscreen .docViewerFrame {
-  height: calc(100vh - 44px);
-}
 
 .docViewerToolbar {
   display: flex;
@@ -788,4 +785,7 @@
   border: none;
   display: block;
   background: white;
+}
+.docViewerWrap:fullscreen .docViewerFrame {
+  height: calc(100vh - 44px);
 }
