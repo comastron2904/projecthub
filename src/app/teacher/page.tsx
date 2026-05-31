@@ -460,7 +460,13 @@ export default function TeacherDashboard() {
     setUploadProgress('업로드 중...')
     const path = `forum-media/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
     const { error } = await supabase.storage.from('projecthub-files').upload(path, file, { upsert: false })
-    if (error) { showToast('❌ 업로드 실패: ' + error.message); setUploadingFile(false); setUploadProgress(''); return }
+    if (error) {
+      const msg = error.message.includes('Bucket not found')
+        ? '❌ Supabase Storage 버킷이 없습니다. Dashboard → Storage에서 "projecthub-files" 버킷을 Public으로 생성해 주세요.'
+        : '❌ 업로드 실패: ' + error.message
+      showToast(msg)
+      setUploadingFile(false); setUploadProgress(''); return
+    }
 
     const { data: urlData } = supabase.storage.from('projecthub-files').getPublicUrl(path)
     const publicUrl = urlData.publicUrl
