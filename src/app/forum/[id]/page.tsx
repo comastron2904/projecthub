@@ -47,45 +47,51 @@ function DocViewer({ item }: { item: MediaItem }) {
     }
   }
 
-  // PDF: Google Docs Viewer로 렌더링 (슬라이드 넘기기 내장)
+  // PDF: 브라우저 내장 PDF 렌더러 사용 (CORS 없음, 슬라이드 넘기기 내장)
   if (item.type === 'pdf') {
-    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(item.url)}&embedded=true`
     return (
       <div className={styles.docViewerWrap} ref={containerRef}>
         <div className={styles.docViewerToolbar}>
           <span className={styles.docViewerBadge}>📄 PDF</span>
           {item.caption && <span className={styles.docViewerCaption}>{item.caption}</span>}
-          <button className={styles.docViewerFsBtn} onClick={toggleFullscreen} title="전체화면">
-            {isFullscreen ? '⛶ 전체화면 종료' : '⛶ 전체화면'}
+          <a className={styles.docViewerFsBtn} href={item.url} target="_blank" rel="noreferrer">↗ 새 탭</a>
+          <button className={styles.docViewerFsBtn} onClick={toggleFullscreen}>
+            {isFullscreen ? '⛶ 종료' : '⛶ 전체화면'}
           </button>
         </div>
-        <iframe
+        <embed
           className={styles.docViewerFrame}
-          src={viewerUrl}
-          allowFullScreen
+          src={`${item.url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+          type="application/pdf"
         />
       </div>
     )
   }
 
-  // Slides (PPT/PPTX/Google Slides): Google Slides Viewer
+  // Slides: Google Slides embed 또는 PPT/PPTX → Office Online Viewer
   if (item.type === 'slides') {
-    // Google Slides 공유 URL이면 embed URL로 변환
     let embedUrl = item.url
     if (item.url.includes('docs.google.com/presentation')) {
-      embedUrl = item.url.replace(/\/pub(\?|$)/, '/embed$1').replace(/\/edit(\?|$)/, '/embed$1').replace(/\/preview(\?|$)/, '/embed$1')
-      if (!embedUrl.includes('/embed')) embedUrl = embedUrl.replace(/\/(presentation\/d\/[^/]+).*/, '/$1/embed')
+      // Google Slides 공유 URL → embed URL로 변환
+      embedUrl = item.url
+        .replace(/\/pub(\?|$)/, '/embed$1')
+        .replace(/\/edit(\?|$)/, '/embed$1')
+        .replace(/\/preview(\?|$)/, '/embed$1')
+      if (!embedUrl.includes('/embed')) {
+        embedUrl = embedUrl.replace(/\/(presentation\/d\/[^/]+).*/, '/$1/embed')
+      }
     } else {
-      // PPT/PPTX 파일 URL → Office Online Viewer
-      embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(item.url)}&embedded=true`
+      // PPT/PPTX Supabase URL → Microsoft Office Online Viewer
+      embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}`
     }
     return (
       <div className={styles.docViewerWrap} ref={containerRef}>
         <div className={styles.docViewerToolbar}>
           <span className={styles.docViewerBadge} style={{ background: '#ea580c' }}>📊 슬라이드</span>
           {item.caption && <span className={styles.docViewerCaption}>{item.caption}</span>}
+          <a className={styles.docViewerFsBtn} href={item.url} target="_blank" rel="noreferrer" title="새 탭에서 열기">↗ 새 탭</a>
           <button className={styles.docViewerFsBtn} onClick={toggleFullscreen} title="전체화면">
-            {isFullscreen ? '⛶ 전체화면 종료' : '⛶ 전체화면'}
+            {isFullscreen ? '⛶ 종료' : '⛶ 전체화면'}
           </button>
         </div>
         <iframe
