@@ -11,9 +11,11 @@ interface Project { id: string; subject_id: string; title: string; description: 
 interface SubmissionFile { id: number; file_name: string; file_path: string; file_size: string; uploaded_at: string }
 interface Submission { project_id: string; answers: Record<string, string>; files: SubmissionFile[]; submitted_at: string }
 interface Forum { id: string; title: string; description: string; media_items: unknown[]; is_active: boolean; subject_id: string | null }
+interface ForumComment { id: number; forum_id: string; content: string; created_at: string }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 type View = 'subjects' | 'projects' | 'worksheet'
+type MainTab = 'activity' | 'record'
 
 export default function StudentDashboard() {
   const router = useRouter()
@@ -24,7 +26,10 @@ export default function StudentDashboard() {
   const [projects, setProjects] = useState<Project[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [forums, setForums] = useState<Forum[]>([])
+  const [myComments, setMyComments] = useState<ForumComment[]>([])
+  const [forumMap, setForumMap] = useState<Record<string, Forum>>({})
 
+  const [mainTab, setMainTab] = useState<MainTab>('activity')
   const [view, setView] = useState<View>('subjects')
   const [currentSubjectId, setCurrentSubjectId] = useState<string | null>(null)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
@@ -55,9 +60,13 @@ export default function StudentDashboard() {
     ])
     if (subs) setSubjects(subs)
     if (projs) setProjects(projs)
-    if (frms) setForums(frms)
+    if (frms) {
+      setForums(frms)
+      const map: Record<string, Forum> = {}
+      frms.forEach((f: Forum) => { map[f.id] = f })
+      setForumMap(map)
+    }
 
-    // 제출 목록 + 파일 목록 조인
     const { data: sbms } = await supabase.from('submissions')
       .select('project_id, answers, submitted_at, submission_files(id, file_name, file_path, file_size, uploaded_at)')
       .eq('student_id', stuId)
@@ -69,6 +78,13 @@ export default function StudentDashboard() {
         files: (s.submission_files || []) as SubmissionFile[],
       })))
     }
+
+    // 내 포럼 댓글 불러오기
+    const { data: cmts } = await supabase.from('forum_comments')
+      .select('id, forum_id, content, created_at')
+      .eq('student_id', stuId)
+      .order('created_at', { ascending: false })
+    if (cmts) setMyComments(cmts)
   }, [supabase])
 
   useEffect(() => { if (student) loadData(student.id) }, [student, loadData])
@@ -151,7 +167,6 @@ export default function StudentDashboard() {
       answers, submitted: true, submitted_at: now,
     }
 
-    // 기존 제출 여부 확인 → insert or update
     const { data: existing } = await supabase.from('submissions')
       .select('id').eq('student_id', sid).eq('project_id', currentProjectId).single()
 
@@ -172,7 +187,6 @@ export default function StudentDashboard() {
       setUploading(false); return
     }
 
-    // 새 파일들 업로드 → submission_files에 저장
     for (const file of selectedFiles) {
       const ext = file.name.split('.').pop()
       const storagePath = `submissions/${sid}_${currentProjectId}_${Date.now()}.${ext}`
@@ -191,7 +205,6 @@ export default function StudentDashboard() {
       })
     }
 
-    // 최신 파일 목록 다시 로드
     const { data: newFiles } = await supabase.from('submission_files')
       .select('id, file_name, file_path, file_size, uploaded_at')
       .eq('student_id', sid).eq('project_id', currentProjectId)
@@ -216,7 +229,22 @@ export default function StudentDashboard() {
   const answeredCount = Object.values(answers).filter(v => v?.trim()).length
   const pct = totalItems > 0 ? Math.round(answeredCount / totalItems * 100) : 0
 
+  function formatDate(iso: string) {
+    const d = new Date(iso)
+    return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+  }
+
   if (!student) return <div className="loading-center">로딩 중...</div>
+
+  // 활동 기록 탭용 데이터
+  const submittedProjects = submissions.map(sub => {
+    const proj = projects.find(p => p.id === sub.project_id)
+    const subj = subjects.find(s => s.id === proj?.subject_id)
+    const totalQ = (proj?.stages || []).flatMap(st => st.items).length
+    const answered = Object.values(sub.answers).filter(v => v?.trim()).length
+    const pct = totalQ > 0 ? Math.round(answered / totalQ * 100) : 0
+    return { sub, proj, subj, totalQ, answered, pct }
+  }).filter(x => x.proj)
 
   return (
     <div className={styles.dashPage}>
@@ -236,192 +264,307 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* Subjects */}
+      {/* ── 메인 탭 (활동 / 내 기록) ── */}
       {view === 'subjects' && (
-        <div>
-          <p className={styles.sectionTitle}>📚 과목 선택</p>
-          <p className={styles.sectionSub}>참여할 과목을 선택하세요.</p>
-          {visibleSubjects.length === 0 ? (
-            <div className={styles.emptyState}><div>📭</div><p>아직 개설된 과목이 없습니다.</p></div>
-          ) : (
-            <div className={styles.subjectGrid}>
-              {visibleSubjects.map((s, i) => (
-                <div key={s.id} className={styles.subjectCard} onClick={() => selectSubject(s.id)}>
-                  <div className={styles.subjectCardIcon}>{SUBJECT_ICONS[i % SUBJECT_ICONS.length]}</div>
-                  <div className={styles.subjectCardName}>{s.name}</div>
-                  <div className={styles.subjectCardMeta}>프로젝트 {projects.filter(p => p.subject_id === s.id).length}개</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Forum section */}
-          {forums.length > 0 && (
-            <div className={styles.forumSection}>
-              <p className={styles.forumSectionTitle}>🎬 포럼</p>
-              <p className={styles.forumSectionSub}>교사가 개설한 포럼에 참여하세요.</p>
-              <div className={styles.forumCards}>
-                {forums.map(f => (
-                  <div key={f.id} className={styles.forumCard} onClick={() => router.push(`/forum/${f.id}`)}>
-                    <div className={styles.forumCardIcon}>🎬</div>
-                    <div className={styles.forumCardInfo}>
-                      <div className={styles.forumCardTitle}>{f.title}</div>
-                      {f.description && <div className={styles.forumCardDesc}>{f.description.slice(0, 60)}{f.description.length > 60 ? '…' : ''}</div>}
-                      <div className={styles.forumCardMeta}>
-                        {f.subject_id && subjects.find(s => s.id === f.subject_id) && (
-                          <span>{subjects.find(s => s.id === f.subject_id)?.name}</span>
-                        )}
-                        <span>{(f.media_items || []).length}개 미디어</span>
-                      </div>
-                    </div>
-                    <div className={styles.forumCardArrow}>→</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div className={styles.mainTabs}>
+          <button
+            className={`${styles.mainTab} ${mainTab === 'activity' ? styles.mainTabActive : ''}`}
+            onClick={() => setMainTab('activity')}
+          >
+            🏠 활동
+          </button>
+          <button
+            className={`${styles.mainTab} ${mainTab === 'record' ? styles.mainTabActive : ''}`}
+            onClick={() => setMainTab('record')}
+          >
+            📋 내 활동 기록
+            {(submittedProjects.length > 0 || myComments.length > 0) && (
+              <span className={styles.mainTabBadge}>
+                {submittedProjects.length + myComments.length}
+              </span>
+            )}
+          </button>
         </div>
       )}
 
-      {/* Projects */}
-      {view === 'projects' && (
-        <div>
-          <button className={styles.backBtn} onClick={() => setView('subjects')}>← 과목 목록으로</button>
-          <p className={styles.breadcrumb}>📚 {currentSubject?.name}</p>
-          <p className={styles.sectionTitle}>{currentSubject?.name} 프로젝트</p>
-          <p className={styles.sectionSub}>참여할 프로젝트를 선택하세요.</p>
-          {getSubjectProjects().length === 0 ? (
-            <div className={styles.emptyState}><p>이 과목에 아직 프로젝트가 없습니다.</p></div>
-          ) : (
-            <div className={styles.projGrid}>
-              {getSubjectProjects().map((p, i) => {
-                const sub = submissions.find(s => s.project_id === p.id)
-                return (
-                  <div key={p.id} className={`${styles.projCard} ${sub ? styles.projSubmitted : ''}`} onClick={() => selectProject(p.id)}>
-                    <div className={styles.projCardNum}>{i + 1}</div>
-                    <div className={styles.projCardName}>{p.title}</div>
-                    {p.description && <div className={styles.projCardDesc}>{p.description}</div>}
-                    <div className={styles.projCardFooter}>
-                      <span className={styles.projCardStages}>{p.stages.length}단계</span>
-                      {sub && <span className={styles.projSubmittedBadge}>✅ 제출완료</span>}
+      {/* ══════════════════════════════
+          활동 탭
+      ══════════════════════════════ */}
+      {mainTab === 'activity' && (
+        <>
+          {/* Subjects */}
+          {view === 'subjects' && (
+            <div>
+              <p className={styles.sectionTitle}>📚 과목 선택</p>
+              <p className={styles.sectionSub}>참여할 과목을 선택하세요.</p>
+              {visibleSubjects.length === 0 ? (
+                <div className={styles.emptyState}><div>📭</div><p>아직 개설된 과목이 없습니다.</p></div>
+              ) : (
+                <div className={styles.subjectGrid}>
+                  {visibleSubjects.map((s, i) => (
+                    <div key={s.id} className={styles.subjectCard} onClick={() => selectSubject(s.id)}>
+                      <div className={styles.subjectCardIcon}>{SUBJECT_ICONS[i % SUBJECT_ICONS.length]}</div>
+                      <div className={styles.subjectCardName}>{s.name}</div>
+                      <div className={styles.subjectCardMeta}>프로젝트 {projects.filter(p => p.subject_id === s.id).length}개</div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Worksheet */}
-      {view === 'worksheet' && currentProject && (
-        <div>
-          <button className={styles.backBtn} onClick={() => setView('projects')}>← 프로젝트 목록으로</button>
-          <div className={styles.worksheetHeader}>
-            <div className={styles.wsSubjectBadge}>{currentSubject?.name}</div>
-            <div className={styles.wsProjTitle}>{currentProject.title}</div>
-            {currentProject.description && <div className={styles.wsProjDesc}>{currentProject.description}</div>}
-            <div className={styles.wsMeta}>
-              <div className={styles.wsMetaItem}>📋 {currentProject.stages.length}단계</div>
-              {submitted && <div className={styles.wsMetaItem}>✅ 제출완료</div>}
-            </div>
-            <div className={styles.wsProgress}>
-              <span>{answeredCount}/{totalItems}개 작성</span>
-              <div className={styles.wsProgressBar}><div className={styles.wsProgressFill} style={{ width: pct + '%' }} /></div>
-            </div>
-          </div>
-
-          {submitted && !editing && (
-            <div className={styles.submittedBanner}>
-              <div className={styles.submittedLeft}>
-                <span>✅ 제출 완료</span>
-                <span className={styles.submittedInfo}>{submitInfo}</span>
-              </div>
-              <button className={styles.btnReEdit} onClick={() => setEditing(true)}>✏️ 수정하기</button>
-            </div>
-          )}
-          {submitted && editing && (
-            <div className={styles.editingBanner}>
-              ✏️ 수정 중입니다. 변경 후 <strong>재제출</strong>하면 기존 내용이 덮어씌워집니다.
-              <button className={styles.btnCancelEdit} onClick={() => setEditing(false)}>취소</button>
-            </div>
-          )}
-
-          <div className={styles.stagesList}>
-            {currentProject.stages.map((st, si) => (
-              <div key={si} className={styles.wsStage}>
-                <div className={styles.wsStageHead}>
-                  <div className={styles.wsStageNum}>{si + 1}</div>
-                  <div className={styles.wsStageName}>{st.title || `${si + 1}단계`}</div>
+                  ))}
                 </div>
-                <div className={styles.wsStageBody}>
-                  {st.items.map((item, ii) => {
-                    const key = `${si}_${ii}`
-                    const isQ = item.type === 'q'
-                    return (
-                      <div key={ii} className={styles.wsItem}>
-                        <div className={styles.wsItemPrompt}>
-                          <span className={`${styles.wsItemBadge} ${isQ ? styles.wsBadgeQ : styles.wsBadgeD}`}>{isQ ? '질문' : '설명'}</span>
-                          <span className={styles.wsItemText}>{item.content}</span>
+              )}
+
+              {forums.length > 0 && (
+                <div className={styles.forumSection}>
+                  <p className={styles.forumSectionTitle}>🎬 포럼</p>
+                  <p className={styles.forumSectionSub}>교사가 개설한 포럼에 참여하세요.</p>
+                  <div className={styles.forumCards}>
+                    {forums.map(f => (
+                      <div key={f.id} className={styles.forumCard} onClick={() => router.push(`/forum/${f.id}`)}>
+                        <div className={styles.forumCardIcon}>🎬</div>
+                        <div className={styles.forumCardInfo}>
+                          <div className={styles.forumCardTitle}>{f.title}</div>
+                          {f.description && <div className={styles.forumCardDesc}>{f.description.slice(0, 60)}{f.description.length > 60 ? '…' : ''}</div>}
+                          <div className={styles.forumCardMeta}>
+                            {f.subject_id && subjects.find(s => s.id === f.subject_id) && (
+                              <span>{subjects.find(s => s.id === f.subject_id)?.name}</span>
+                            )}
+                            <span>{(f.media_items || []).length}개 미디어</span>
+                          </div>
                         </div>
-                        <textarea
-                          className={`${styles.wsAnswer} ${!isQ ? styles.descAnswer : ''}`}
-                          value={answers[key] || ''}
-                          readOnly={submitted && !editing}
-                          placeholder={isQ ? '여기에 답변을 작성하세요...' : '내용을 기록하세요...'}
-                          onChange={e => saveDraft(key, e.target.value)}
-                        />
+                        <div className={styles.forumCardArrow}>→</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Projects */}
+          {view === 'projects' && (
+            <div>
+              <button className={styles.backBtn} onClick={() => setView('subjects')}>← 과목 목록으로</button>
+              <p className={styles.breadcrumb}>📚 {currentSubject?.name}</p>
+              <p className={styles.sectionTitle}>{currentSubject?.name} 프로젝트</p>
+              <p className={styles.sectionSub}>참여할 프로젝트를 선택하세요.</p>
+              {getSubjectProjects().length === 0 ? (
+                <div className={styles.emptyState}><p>이 과목에 아직 프로젝트가 없습니다.</p></div>
+              ) : (
+                <div className={styles.projGrid}>
+                  {getSubjectProjects().map((p, i) => {
+                    const sub = submissions.find(s => s.project_id === p.id)
+                    return (
+                      <div key={p.id} className={`${styles.projCard} ${sub ? styles.projSubmitted : ''}`} onClick={() => selectProject(p.id)}>
+                        <div className={styles.projCardNum}>{i + 1}</div>
+                        <div className={styles.projCardName}>{p.title}</div>
+                        {p.description && <div className={styles.projCardDesc}>{p.description}</div>}
+                        <div className={styles.projCardFooter}>
+                          <span className={styles.projCardStages}>{p.stages.length}단계</span>
+                          {sub && <span className={styles.projSubmittedBadge}>✅ 제출완료</span>}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {(!submitted || editing) && (
-            <div className={`${styles.submitForm} ${editing ? styles.submitFormEditing : ''}`}>
-              <div className={styles.submitFormTitle}>{editing ? '📝 수정 후 재제출' : '📤 워크시트 제출'}</div>
-
-              {/* 기존 첨부파일 목록 (수정 중일 때) */}
-              {editing && existingFiles.length > 0 && (
-                <div className={styles.existingFilesBox}>
-                  <div className={styles.existingFilesLabel}>기존 첨부파일</div>
-                  {existingFiles.map(f => (
-                    <div key={f.id} className={styles.existingFileRow}>
-                      <span className={styles.existingFileName}>📎 {f.file_name}</span>
-                      <span className={styles.existingFileSize}>{f.file_size}</span>
-                      <button className={styles.btnDeleteFile} onClick={() => deleteExistingFile(f.id, f.file_path)}>🗑</button>
-                    </div>
-                  ))}
-                </div>
               )}
-
-              {/* 새 파일 추가 */}
-              <div className={styles.fileUploadRow}>
-                <label className={styles.fileLabel} onClick={() => fileInputRef.current?.click()}>
-                  📎 {editing ? '파일 추가' : '파일 첨부 (선택)'}
-                </label>
-                <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
-                {selectedFiles.length === 0 && <span className={styles.fileHint}>{editing ? '새 파일을 추가할 수 있어요' : '이미지, PDF, 문서 등 여러 개 가능'}</span>}
-              </div>
-              {selectedFiles.length > 0 && (
-                <div className={styles.selectedFilesList}>
-                  {selectedFiles.map((f, i) => (
-                    <div key={i} className={styles.selectedFileRow}>
-                      <span className={styles.selectedFileName}>📄 {f.name}</span>
-                      <span className={styles.selectedFileSize}>{(f.size/1024/1024).toFixed(1)}MB</span>
-                      <button className={styles.btnRemoveFile} onClick={() => removeSelectedFile(i)}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <button className={`${styles.btnSubmit} ${editing ? styles.btnResubmit : ''}`} onClick={submitWorksheet} disabled={uploading}>
-                {uploading ? '⏳ 업로드 중...' : editing ? '재제출하기' : '제출하기'}
-              </button>
             </div>
           )}
+
+          {/* Worksheet */}
+          {view === 'worksheet' && currentProject && (
+            <div>
+              <button className={styles.backBtn} onClick={() => setView('projects')}>← 프로젝트 목록으로</button>
+              <div className={styles.worksheetHeader}>
+                <div className={styles.wsSubjectBadge}>{currentSubject?.name}</div>
+                <div className={styles.wsProjTitle}>{currentProject.title}</div>
+                {currentProject.description && <div className={styles.wsProjDesc}>{currentProject.description}</div>}
+                <div className={styles.wsMeta}>
+                  <div className={styles.wsMetaItem}>📋 {currentProject.stages.length}단계</div>
+                  {submitted && <div className={styles.wsMetaItem}>✅ 제출완료</div>}
+                </div>
+                <div className={styles.wsProgress}>
+                  <span>{answeredCount}/{totalItems}개 작성</span>
+                  <div className={styles.wsProgressBar}><div className={styles.wsProgressFill} style={{ width: pct + '%' }} /></div>
+                </div>
+              </div>
+
+              {submitted && !editing && (
+                <div className={styles.submittedBanner}>
+                  <div className={styles.submittedLeft}>
+                    <span>✅ 제출 완료</span>
+                    <span className={styles.submittedInfo}>{submitInfo}</span>
+                  </div>
+                  <button className={styles.btnReEdit} onClick={() => setEditing(true)}>✏️ 수정하기</button>
+                </div>
+              )}
+              {submitted && editing && (
+                <div className={styles.editingBanner}>
+                  ✏️ 수정 중입니다. 변경 후 <strong>재제출</strong>하면 기존 내용이 덮어씌워집니다.
+                  <button className={styles.btnCancelEdit} onClick={() => setEditing(false)}>취소</button>
+                </div>
+              )}
+
+              <div className={styles.stagesList}>
+                {currentProject.stages.map((st, si) => (
+                  <div key={si} className={styles.wsStage}>
+                    <div className={styles.wsStageHead}>
+                      <div className={styles.wsStageNum}>{si + 1}</div>
+                      <div className={styles.wsStageName}>{st.title || `${si + 1}단계`}</div>
+                    </div>
+                    <div className={styles.wsStageBody}>
+                      {st.items.map((item, ii) => {
+                        const key = `${si}_${ii}`
+                        const isQ = item.type === 'q'
+                        return (
+                          <div key={ii} className={styles.wsItem}>
+                            <div className={styles.wsItemPrompt}>
+                              <span className={`${styles.wsItemBadge} ${isQ ? styles.wsBadgeQ : styles.wsBadgeD}`}>{isQ ? '질문' : '설명'}</span>
+                              <span className={styles.wsItemText}>{item.content}</span>
+                            </div>
+                            <textarea
+                              className={`${styles.wsAnswer} ${!isQ ? styles.descAnswer : ''}`}
+                              value={answers[key] || ''}
+                              readOnly={submitted && !editing}
+                              placeholder={isQ ? '여기에 답변을 작성하세요...' : '내용을 기록하세요...'}
+                              onChange={e => saveDraft(key, e.target.value)}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {(!submitted || editing) && (
+                <div className={`${styles.submitForm} ${editing ? styles.submitFormEditing : ''}`}>
+                  <div className={styles.submitFormTitle}>{editing ? '📝 수정 후 재제출' : '📤 워크시트 제출'}</div>
+                  {editing && existingFiles.length > 0 && (
+                    <div className={styles.existingFilesBox}>
+                      <div className={styles.existingFilesLabel}>기존 첨부파일</div>
+                      {existingFiles.map(f => (
+                        <div key={f.id} className={styles.existingFileRow}>
+                          <span className={styles.existingFileName}>📎 {f.file_name}</span>
+                          <span className={styles.existingFileSize}>{f.file_size}</span>
+                          <button className={styles.btnDeleteFile} onClick={() => deleteExistingFile(f.id, f.file_path)}>🗑</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className={styles.fileUploadRow}>
+                    <label className={styles.fileLabel} onClick={() => fileInputRef.current?.click()}>
+                      📎 {editing ? '파일 추가' : '파일 첨부 (선택)'}
+                    </label>
+                    <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
+                    {selectedFiles.length === 0 && <span className={styles.fileHint}>{editing ? '새 파일을 추가할 수 있어요' : '이미지, PDF, 문서 등 여러 개 가능'}</span>}
+                  </div>
+                  {selectedFiles.length > 0 && (
+                    <div className={styles.selectedFilesList}>
+                      {selectedFiles.map((f, i) => (
+                        <div key={i} className={styles.selectedFileRow}>
+                          <span className={styles.selectedFileName}>📄 {f.name}</span>
+                          <span className={styles.selectedFileSize}>{(f.size/1024/1024).toFixed(1)}MB</span>
+                          <button className={styles.btnRemoveFile} onClick={() => removeSelectedFile(i)}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button className={`${styles.btnSubmit} ${editing ? styles.btnResubmit : ''}`} onClick={submitWorksheet} disabled={uploading}>
+                    {uploading ? '⏳ 업로드 중...' : editing ? '재제출하기' : '제출하기'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══════════════════════════════
+          내 활동 기록 탭
+      ══════════════════════════════ */}
+      {mainTab === 'record' && view === 'subjects' && (
+        <div className={styles.recordPage}>
+
+          {/* 요약 카드 */}
+          <div className={styles.recordSummary}>
+            <div className={styles.recordSummaryCard}>
+              <div className={styles.recordSummaryNum}>{submittedProjects.length}</div>
+              <div className={styles.recordSummaryLabel}>제출한 프로젝트</div>
+            </div>
+            <div className={styles.recordSummaryCard}>
+              <div className={styles.recordSummaryNum}>{myComments.length}</div>
+              <div className={styles.recordSummaryLabel}>포럼 참여 댓글</div>
+            </div>
+            <div className={styles.recordSummaryCard}>
+              <div className={styles.recordSummaryNum}>
+                {submittedProjects.length > 0
+                  ? Math.round(submittedProjects.reduce((a, x) => a + x.pct, 0) / submittedProjects.length)
+                  : 0}%
+              </div>
+              <div className={styles.recordSummaryLabel}>평균 답변 완성도</div>
+            </div>
+          </div>
+
+          {/* 제출한 프로젝트 */}
+          <div className={styles.recordSection}>
+            <div className={styles.recordSectionTitle}>
+              <span>📚 제출한 프로젝트</span>
+              <span className={styles.recordSectionCount}>{submittedProjects.length}개</span>
+            </div>
+
+            {submittedProjects.length === 0 ? (
+              <div className={styles.recordEmpty}>아직 제출한 프로젝트가 없어요.</div>
+            ) : (
+              <div className={styles.recordList}>
+                {submittedProjects.map(({ sub, proj, subj, pct, answered, totalQ }) => (
+                  <div key={sub.project_id} className={styles.recordProjCard}
+                    onClick={() => { selectProject(sub.project_id); setMainTab('activity') }}>
+                    <div className={styles.recordProjTop}>
+                      <span className={styles.recordSubjBadge}>{subj?.name || '과목'}</span>
+                      <span className={styles.recordDate}>{formatDate(sub.submitted_at)}</span>
+                    </div>
+                    <div className={styles.recordProjTitle}>{proj?.title}</div>
+                    <div className={styles.recordProjMeta}>
+                      <span>{answered}/{totalQ}개 답변</span>
+                      {sub.files?.length > 0 && <span>📎 {sub.files.length}개 첨부</span>}
+                    </div>
+                    <div className={styles.recordProgressWrap}>
+                      <div className={styles.recordProgressBar}>
+                        <div className={styles.recordProgressFill} style={{ width: pct + '%' }} />
+                      </div>
+                      <span className={styles.recordProgressPct}>{pct}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 포럼 댓글 기록 */}
+          <div className={styles.recordSection}>
+            <div className={styles.recordSectionTitle}>
+              <span>🎬 포럼 참여 기록</span>
+              <span className={styles.recordSectionCount}>{myComments.length}개</span>
+            </div>
+
+            {myComments.length === 0 ? (
+              <div className={styles.recordEmpty}>아직 참여한 포럼 댓글이 없어요.</div>
+            ) : (
+              <div className={styles.recordList}>
+                {myComments.map(c => {
+                  const forum = forumMap[c.forum_id]
+                  return (
+                    <div key={c.id} className={styles.recordCommentCard}
+                      onClick={() => router.push(`/forum/${c.forum_id}`)}>
+                      <div className={styles.recordCommentTop}>
+                        <span className={styles.recordForumBadge}>🎬 {forum?.title || '포럼'}</span>
+                        <span className={styles.recordDate}>{formatDate(c.created_at)}</span>
+                      </div>
+                      <div className={styles.recordCommentContent}>{c.content}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
