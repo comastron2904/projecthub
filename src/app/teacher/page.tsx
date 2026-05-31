@@ -465,14 +465,14 @@ export default function TeacherDashboard() {
 
       {/* Tabs */}
       <div className={styles.dashTabs}>
-        <button className={`${styles.dashTab} ${dashTab === 'submissions' ? styles.activeTab : ''}`} onClick={() => setDashTab('submissions')}>
-          📋 제출 파일 관리
-        </button>
         <button className={`${styles.dashTab} ${dashTab === 'guidelines' ? styles.activeTab : ''}`} onClick={() => setDashTab('guidelines')}>
           📚 가이드라인 설정
         </button>
         <button className={`${styles.dashTab} ${dashTab === 'forums' ? styles.activeTab : ''}`} onClick={() => setDashTab('forums' as typeof dashTab)}>
           🎬 포럼 관리
+        </button>
+        <button className={`${styles.dashTab} ${dashTab === 'submissions' ? styles.activeTab : ''}`} onClick={() => setDashTab('submissions')}>
+          📋 제출 파일 관리
         </button>
       </div>
 
