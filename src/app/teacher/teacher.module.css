@@ -225,11 +225,11 @@
 .btnDelForum { padding: 0.38rem 0.75rem; background: var(--danger-light); color: var(--danger); border: 1.5px solid #F5BCBC; border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
 .btnDelForum:hover { background: var(--danger); color: white; }
 
-.forumEditor { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
-.forumEditorHeader { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.forumEditor { background: var(--card); border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 1px 8px rgba(0,0,0,0.04); overflow: hidden; }
+.forumEditorHeader { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: white; }
 .forumEditorTitle { font-size: 1rem; font-weight: 700; color: var(--text-main); flex: 1; }
 .forumEditorActions { display: flex; gap: 0.5rem; }
-.forumEditorBody { display: flex; flex-direction: column; gap: 1.5rem; }
+.forumEditorBody { display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem; }
 .forumSection { border: 1.5px solid var(--border); border-radius: 13px; padding: 1.25rem; background: #FDFCFB; }
 .forumSectionLabel { font-size: 0.78rem; font-weight: 700; color: var(--text-hint); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 .forumSectionLabel span { background: var(--accent-light); color: var(--accent); font-size: 0.7rem; padding: 1px 8px; border-radius: 20px; }
