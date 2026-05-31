@@ -16,7 +16,7 @@ interface Submission {
   project_id: string; project_title: string; submitted_at: string | null; submitted: boolean;
 }
 interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
-interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean; layout_media: number; layout_comment: number; comment_height: number }
+interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean; layout_media: number; layout_comment: number; comment_height: number; anonymous: boolean; password: string; notice: string }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 
@@ -76,6 +76,9 @@ export default function TeacherDashboard() {
   // 레이아웃 설정 (미디어 비율 %, 댓글창 높이 px)
   const [fLayoutMedia, setFLayoutMedia] = useState(62)
   const [fCommentHeight, setFCommentHeight] = useState(70)
+  const [fAnonymous, setFAnonymous] = useState(false)
+  const [fPassword, setFPassword] = useState('')
+  const [fNotice, setFNotice] = useState('')
 
   /* ── Auth guard ── */
   useEffect(() => {
@@ -360,6 +363,7 @@ export default function TeacherDashboard() {
     setFTitle(''); setFDesc(''); setFSubjectId(''); setFActive(true); setFMediaItems([])
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
     setFLayoutMedia(62); setFCommentHeight(70)
+    setFAnonymous(false); setFPassword(''); setFNotice('')
     setForumView('editor')
   }
 
@@ -370,6 +374,9 @@ export default function TeacherDashboard() {
     setFMediaItems(JSON.parse(JSON.stringify(f.media_items || [])))
     setFLayoutMedia(f.layout_media ?? 62)
     setFCommentHeight(f.comment_height ?? 70)
+    setFAnonymous(f.anonymous ?? false)
+    setFPassword(f.password ?? '')
+    setFNotice(f.notice ?? '')
     setNewMediaUrl(''); setNewMediaCaption(''); setNewMediaType('video')
     setForumView('editor')
   }
@@ -383,6 +390,9 @@ export default function TeacherDashboard() {
       layout_media: fLayoutMedia,
       layout_comment: 100 - fLayoutMedia,
       comment_height: fCommentHeight,
+      anonymous: fAnonymous,
+      password: fPassword,
+      notice: fNotice,
     }
     if (currentForumId) {
       const { error } = await supabase.from('forums').update(payload).eq('id', currentForumId)
@@ -817,6 +827,9 @@ export default function TeacherDashboard() {
                         </div>
                       </div>
                       <div className={styles.forumCardActions}>
+                        <button className={styles.btnOpenForum} onClick={() => router.push(`/forum/${f.id}`)}>
+                          ▶ 포럼 열기
+                        </button>
                         <button className={styles.btnCopyLink} onClick={() => copyForumLink(f.id)}>
                           {copiedLink === f.id ? '✅ 복사됨' : '🔗 링크 복사'}
                         </button>
@@ -859,18 +872,33 @@ export default function TeacherDashboard() {
                   </div>
                   <div className={styles.forumFieldRow}>
                     <div className={styles.forumField}>
-                      <label>과목 (선택)</label>
-                      <select value={fSubjectId} onChange={e => setFSubjectId(e.target.value)} className={styles.forumSelect}>
-                        <option value="">과목 없음</option>
-                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                    </div>
-                    <div className={styles.forumField}>
                       <label>상태</label>
                       <select value={fActive ? 'active' : 'inactive'} onChange={e => setFActive(e.target.value === 'active')} className={styles.forumSelect}>
                         <option value="active">활성 (학생 접근 가능)</option>
                         <option value="inactive">비활성 (숨김)</option>
                       </select>
+                    </div>
+                    <div className={styles.forumField}>
+                      <label>댓글 표시 방식</label>
+                      <select value={fAnonymous ? 'anon' : 'named'} onChange={e => setFAnonymous(e.target.value === 'anon')} className={styles.forumSelect}>
+                        <option value="named">실명 (학번 + 이름)</option>
+                        <option value="anon">익명</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className={styles.forumFieldRow}>
+                    <div className={styles.forumField}>
+                      <label>입장 비밀번호 <span className={styles.fieldOptional}>(비워두면 없음)</span></label>
+                      <input value={fPassword} onChange={e => setFPassword(e.target.value)}
+                        placeholder="숫자나 문자 조합"
+                        className={styles.forumInput} />
+                    </div>
+                    <div className={styles.forumField}>
+                      <label>공지 메시지 <span className={styles.fieldOptional}>(비워두면 없음)</span></label>
+                      <input value={fNotice} onChange={e => setFNotice(e.target.value)}
+                        placeholder="포럼 상단에 고정 표시될 메시지"
+                        className={styles.forumInput} />
                     </div>
                   </div>
                 </div>
