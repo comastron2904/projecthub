@@ -11,7 +11,10 @@ interface Forum {
   anonymous: boolean; password: string; notice: string
   comments_enabled: boolean
 }
-interface Comment { id: number; student_id: string; student_name: string; content: string; created_at: string }
+interface Comment {
+  id: number; student_id: string; student_name: string; content: string; created_at: string
+  is_pinned?: boolean
+}
 
 function MediaRenderer({ item }: { item: MediaItem }) {
   function toYouTubeEmbed(url: string) {
@@ -39,13 +42,67 @@ function MediaRenderer({ item }: { item: MediaItem }) {
   )
 }
 
+/* ── 핀된 댓글 패널 (미디어 패널 하단에 표시) ── */
+function PinnedCommentsPanel({
+  pinnedComments,
+  anonymous,
+}: {
+  pinnedComments: Comment[]
+  anonymous: boolean
+}) {
+  if (pinnedComments.length === 0) return null
+
+  const count = pinnedComments.length
+
+  // 개수에 따라 그리드 레이아웃 자동 결정
+  let gridCols = 1
+  let maxH = '120px'
+  if (count === 1) { gridCols = 1; maxH = '110px' }
+  else if (count === 2) { gridCols = 2; maxH = '110px' }
+  else if (count === 3) { gridCols = 3; maxH = '110px' }
+  else if (count === 4) { gridCols = 2; maxH = '220px' }
+  else if (count <= 6) { gridCols = 3; maxH = '220px' }
+  else if (count <= 9) { gridCols = 3; maxH = '330px' }
+  else { gridCols = 4; maxH = '330px' }
+
+  return (
+    <div className={styles.pinnedPanel}>
+      <div className={styles.pinnedPanelHeader}>
+        <span className={styles.pinnedPanelIcon}>📌</span>
+        <span className={styles.pinnedPanelTitle}>교사 선택 댓글</span>
+        <span className={styles.pinnedPanelCount}>{count}개</span>
+      </div>
+      <div
+        className={styles.pinnedGrid}
+        style={{
+          gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+          maxHeight: maxH,
+        }}
+      >
+        {pinnedComments.map((c, idx) => (
+          <div key={c.id} className={styles.pinnedCard} style={{ animationDelay: `${idx * 60}ms` }}>
+            <div className={styles.pinnedCardHeader}>
+              <div className={styles.pinnedAvatar}>{c.student_name[0]}</div>
+              <div className={styles.pinnedMeta}>
+                <span className={styles.pinnedName}>{c.student_name}</span>
+                {!anonymous && <span className={styles.pinnedId}>{c.student_id}</span>}
+              </div>
+              <span className={styles.pinnedDot}>📌</span>
+            </div>
+            <div className={styles.pinnedContent}>{c.content}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ForumPage() {
   const router = useRouter()
   const params = useParams()
   const forumId = params.id as string
   const supabase = createClient()
 
-  // 학생 or 교사 세션
   const [student, setStudent] = useState<{ id: string; name: string } | null>(null)
   const [isTeacher, setIsTeacher] = useState(false)
   const [teacherName, setTeacherName] = useState('')
@@ -59,16 +116,17 @@ export default function ForumPage() {
   const [passwordPassed, setPasswordPassed] = useState(false)
   const [passwordError, setPasswordError] = useState(false)
   const [togglingComments, setTogglingComments] = useState(false)
+  const [pinningId, setPinningId] = useState<number | null>(null)
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
-  /* ── Auth: 학생 or 교사 모두 허용 ── */
+  /* ── Auth ── */
   useEffect(() => {
     const teacher = sessionStorage.getItem('ph_teacher')
     const studentRaw = sessionStorage.getItem('ph_student')
     if (teacher) {
       setIsTeacher(true)
       setTeacherName(teacher)
-      setPasswordPassed(true) // 교사는 비밀번호 스킵
+      setPasswordPassed(true)
     } else if (studentRaw) {
       setStudent(JSON.parse(studentRaw))
     } else {
@@ -85,7 +143,7 @@ export default function ForumPage() {
     load()
   }, [forumId, supabase])
 
-  /* ── Realtime: comments INSERT ── */
+  /* ── Realtime: comments INSERT + UPDATE ── */
   useEffect(() => {
     const channel = supabase
       .channel(`forum_comments_${forumId}`)
@@ -95,11 +153,23 @@ export default function ForumPage() {
       }, (payload) => {
         setComments(prev => [...prev, payload.new as Comment])
       })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'forum_comments',
+        filter: `forum_id=eq.${forumId}`,
+      }, (payload) => {
+        setComments(prev => prev.map(c => c.id === (payload.new as Comment).id ? { ...c, ...(payload.new as Comment) } : c))
+      })
+      .on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'forum_comments',
+        filter: `forum_id=eq.${forumId}`,
+      }, (payload) => {
+        setComments(prev => prev.filter(c => c.id !== (payload.old as Comment).id))
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [forumId, supabase])
 
-  /* ── Realtime: forum UPDATE (댓글 on/off 실시간 반영) ── */
+  /* ── Realtime: forum UPDATE ── */
   useEffect(() => {
     const channel = supabase
       .channel(`forum_state_${forumId}`)
@@ -127,7 +197,7 @@ export default function ForumPage() {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [comments])
 
-  /* ── 댓글 ON/OFF 토글 (교사 전용) ── */
+  /* ── 댓글 ON/OFF 토글 ── */
   async function toggleComments() {
     if (!forum || togglingComments) return
     setTogglingComments(true)
@@ -137,7 +207,21 @@ export default function ForumPage() {
     setTogglingComments(false)
   }
 
-  /* ── 댓글 삭제 (교사 전용) ── */
+  /* ── 댓글 핀 토글 (교사 전용) ── */
+  async function togglePin(comment: Comment) {
+    if (pinningId === comment.id) return
+    setPinningId(comment.id)
+    const newVal = !comment.is_pinned
+    const { error } = await supabase.from('forum_comments')
+      .update({ is_pinned: newVal })
+      .eq('id', comment.id)
+    if (!error) {
+      setComments(prev => prev.map(c => c.id === comment.id ? { ...c, is_pinned: newVal } : c))
+    }
+    setPinningId(null)
+  }
+
+  /* ── 댓글 삭제 ── */
   async function deleteComment(id: number) {
     await supabase.from('forum_comments').delete().eq('id', id)
     setComments(prev => prev.filter(c => c.id !== id))
@@ -174,7 +258,6 @@ export default function ForumPage() {
 
   if (!forum || (!student && !isTeacher)) return <div className="loading-center">로딩 중...</div>
 
-  // 비밀번호 화면 (학생만)
   if (forum.password && !passwordPassed && !isTeacher) return (
     <div className={styles.passwordPage}>
       <div className={styles.passwordBox}>
@@ -192,7 +275,8 @@ export default function ForumPage() {
   )
 
   const mediaItems: MediaItem[] = forum.media_items || []
-  const commentsOn = forum.comments_enabled !== false // 기본값 true
+  const commentsOn = forum.comments_enabled !== false
+  const pinnedComments = comments.filter(c => c.is_pinned)
 
   return (
     <div className={styles.page}>
@@ -225,9 +309,16 @@ export default function ForumPage() {
         <div className={styles.teacherControlBar}>
           <div className={styles.tcBarLeft}>
             <span className={styles.tcBarBadge}>👩‍🏫 교사 관리 모드</span>
-            <span className={styles.tcBarInfo}>학생들에게는 이 바가 보이지 않습니다</span>
+            <span className={styles.tcBarInfo}>
+              📌 댓글을 클릭하여 화면에 포인트로 표시 · 학생들에게는 이 바가 보이지 않습니다
+            </span>
           </div>
           <div className={styles.tcBarRight}>
+            {pinnedComments.length > 0 && (
+              <span className={styles.tcPinnedCount}>
+                📌 {pinnedComments.length}개 표시 중
+              </span>
+            )}
             {/* 댓글 ON/OFF */}
             <div className={styles.tcToggleGroup}>
               <span className={styles.tcToggleLabel}>댓글</span>
@@ -242,7 +333,6 @@ export default function ForumPage() {
                 {commentsOn ? 'ON' : 'OFF'}
               </span>
             </div>
-            {/* 포럼 편집 이동 */}
             <button className={styles.tcBtnEdit}
               onClick={() => { sessionStorage.setItem('ph_forum_edit', forumId); router.push('/teacher') }}>
               ✏️ 포럼 편집
@@ -255,7 +345,7 @@ export default function ForumPage() {
       <div className={styles.layout} style={{
         gridTemplateColumns: `${forum.layout_media ?? 62}fr ${forum.layout_comment ?? 38}fr`
       }}>
-        {/* ── Left: Media + Description ── */}
+        {/* ── Left: Media + Pinned + Description ── */}
         <div className={styles.mediaPanel}>
           {forum.notice && <div className={styles.noticeBanner}>📢 {forum.notice}</div>}
           {mediaItems.length === 0 ? (
@@ -279,6 +369,13 @@ export default function ForumPage() {
               )}
             </>
           )}
+
+          {/* 📌 핀된 댓글 패널 — 미디어 아래, 모든 학생에게 표시 */}
+          <PinnedCommentsPanel
+            pinnedComments={pinnedComments}
+            anonymous={forum.anonymous ?? false}
+          />
+
           {forum.description && (
             <div className={styles.descBox}>
               <div className={styles.descLabel}>📋 설명</div>
@@ -297,7 +394,7 @@ export default function ForumPage() {
             </div>
           </div>
 
-          {/* 학생 정체성 표시 */}
+          {/* 학생 정체성 */}
           {!isTeacher && (
             <div className={styles.myIdentity}>
               <div className={styles.myAvatar}>{forum.anonymous ? '?' : student!.name[0]}</div>
@@ -312,7 +409,9 @@ export default function ForumPage() {
               <div className={`${styles.myAvatar} ${styles.teacherAvatar}`}>👩‍🏫</div>
               <div>
                 <div className={styles.myName}>교사 관리 모드</div>
-                <div className={styles.myId}>댓글 삭제 가능 · 댓글 {commentsOn ? '활성화' : '비활성화'} 상태</div>
+                <div className={styles.myId}>
+                  📌 클릭 = 화면 포인트 표시 · 🗑 삭제 · 댓글 {commentsOn ? '활성화' : '비활성화'} 상태
+                </div>
               </div>
             </div>
           )}
@@ -327,22 +426,39 @@ export default function ForumPage() {
             )}
             {comments.map(c => {
               const isMe = !isTeacher && c.student_id === student?.id
+              const isPinned = !!c.is_pinned
               return (
-                <div key={c.id} className={`${styles.commentItem} ${isMe ? styles.commentItemMe : ''}`}>
+                <div
+                  key={c.id}
+                  className={`${styles.commentItem} ${isMe ? styles.commentItemMe : ''} ${isPinned ? styles.commentItemPinned : ''}`}
+                >
                   <div className={styles.commentMeta}>
-                    <div className={`${styles.commentAvatar} ${isMe ? styles.commentAvatarMe : ''}`}>
+                    <div className={`${styles.commentAvatar} ${isMe ? styles.commentAvatarMe : ''} ${isPinned ? styles.commentAvatarPinned : ''}`}>
                       {c.student_name[0]}
                     </div>
                     <div className={styles.commentInfo}>
                       <span className={styles.commentName}>{c.student_name}</span>
                       {!forum.anonymous && <span className={styles.commentId}>{c.student_id}</span>}
+                      {isPinned && <span className={styles.pinnedBadge}>📌 표시 중</span>}
                     </div>
                     <span className={styles.commentTime}>{formatDate(c.created_at)}</span>
                     {isTeacher && (
-                      <button className={styles.btnDeleteComment} onClick={() => deleteComment(c.id)}>🗑</button>
+                      <div className={styles.teacherCommentBtns}>
+                        {/* 핀 버튼 */}
+                        <button
+                          className={`${styles.btnPinComment} ${isPinned ? styles.btnPinCommentActive : ''}`}
+                          onClick={() => togglePin(c)}
+                          disabled={pinningId === c.id}
+                          title={isPinned ? '화면에서 내리기' : '화면에 포인트 표시'}
+                        >
+                          {pinningId === c.id ? '...' : isPinned ? '📌' : '📍'}
+                        </button>
+                        {/* 삭제 버튼 */}
+                        <button className={styles.btnDeleteComment} onClick={() => deleteComment(c.id)}>🗑</button>
+                      </div>
                     )}
                   </div>
-                  <div className={`${styles.commentBubble} ${isMe ? styles.commentBubbleMe : ''}`}>
+                  <div className={`${styles.commentBubble} ${isMe ? styles.commentBubbleMe : ''} ${isPinned ? styles.commentBubblePinned : ''}`}>
                     {c.content}
                   </div>
                 </div>
@@ -351,7 +467,7 @@ export default function ForumPage() {
             <div ref={commentsEndRef} />
           </div>
 
-          {/* Input (학생만, 댓글 ON일 때) */}
+          {/* Input */}
           {!isTeacher && (
             commentsOn ? (
               <div className={styles.commentInputBox}>
