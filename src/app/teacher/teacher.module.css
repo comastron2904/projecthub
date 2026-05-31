@@ -20,7 +20,7 @@
 .btnLogout:hover { border-color: var(--danger); color: var(--danger); }
 
 /* Tabs */
-.dashTabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--border); border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; }
+.dashTabs { display: grid; grid-template-columns: 1fr 1fr 1fr; background: var(--border); border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; }
 .dashTab {
   padding: 0.6rem 1rem; border: none; background: none; cursor: pointer; border-radius: 9px;
   font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500;
