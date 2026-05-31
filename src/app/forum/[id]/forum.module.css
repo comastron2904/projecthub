@@ -224,3 +224,214 @@
   font-size: 0.83rem; font-weight: 500; text-align: center; flex-shrink: 0;
   border-top: 1px solid #F5BCBC;
 }
+
+/* ═══════════════════════════════════════════════
+   📌 핀 기능 — 교사 댓글 포인트 표시 시스템
+   ═══════════════════════════════════════════════ */
+
+/* ── 교사 컨트롤 바 핀 카운트 ── */
+.tcPinnedCount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #F5C842;
+  background: rgba(245, 200, 66, 0.15);
+  border: 1px solid rgba(245, 200, 66, 0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+  animation: tcPinPulse 2s ease-in-out infinite;
+}
+@keyframes tcPinPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ── 핀 버튼 (댓글 옆) ── */
+.teacherCommentBtns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.btnPinComment {
+  background: none;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 2px 6px;
+  border-radius: 7px;
+  opacity: 0.45;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btnPinComment:hover {
+  opacity: 1;
+  background: #FFF8D6;
+  border-color: #F5C842;
+}
+.btnPinCommentActive {
+  opacity: 1;
+  background: #FFF3B0;
+  border-color: #F5C842;
+  animation: pinGlow 1.5s ease-in-out infinite;
+}
+@keyframes pinGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,200,66,0); }
+  50% { box-shadow: 0 0 0 3px rgba(245,200,66,0.3); }
+}
+.btnPinComment:disabled { cursor: not-allowed; }
+
+/* ── 핀된 댓글 아이템 스타일 (우측 패널) ── */
+.commentItemPinned {
+  border-left: 3px solid #F5C842;
+  padding-left: 8px;
+  background: linear-gradient(to right, rgba(255,243,176,0.3), transparent);
+  border-radius: 0 10px 10px 0;
+}
+.commentAvatarPinned {
+  background: #F5C842 !important;
+  color: #5A4500 !important;
+}
+.commentBubblePinned {
+  background: #FFFBE6 !important;
+  border: 1px solid #F5C842 !important;
+}
+.pinnedBadge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #8A6900;
+  background: #FFF3B0;
+  border: 1px solid #F5C842;
+  padding: 1px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   📌 핀된 댓글 패널 (미디어 패널 하단)
+   ═══════════════════════════════════════════════ */
+.pinnedPanel {
+  background: linear-gradient(135deg, #FFFBE6 0%, #FFF8D0 100%);
+  border: 2px solid #F5C842;
+  border-radius: 16px;
+  padding: 1rem;
+  animation: pinnedPanelIn 0.35s ease;
+  box-shadow: 0 4px 20px rgba(245, 200, 66, 0.2);
+}
+@keyframes pinnedPanelIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pinnedPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(245, 200, 66, 0.4);
+}
+.pinnedPanelIcon { font-size: 1rem; }
+.pinnedPanelTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6A4F00;
+  letter-spacing: 0.03em;
+  flex: 1;
+}
+.pinnedPanelCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #F5C842;
+  color: #3A2900;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+/* 핀 카드 그리드 — JS로 gridTemplateColumns 주입 */
+.pinnedGrid {
+  display: grid;
+  gap: 0.6rem;
+  overflow-y: auto;
+  transition: max-height 0.4s ease, grid-template-columns 0.3s ease;
+}
+
+/* 스크롤바 */
+.pinnedGrid::-webkit-scrollbar { width: 4px; }
+.pinnedGrid::-webkit-scrollbar-thumb { background: #F0C830; border-radius: 4px; }
+
+/* 개별 핀 카드 */
+.pinnedCard {
+  background: white;
+  border: 1.5px solid rgba(245, 200, 66, 0.5);
+  border-radius: 11px;
+  padding: 0.7rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  animation: pinCardIn 0.3s ease both;
+  box-shadow: 0 2px 8px rgba(245,200,66,0.12);
+  min-width: 0;
+}
+@keyframes pinCardIn {
+  from { opacity: 0; transform: scale(0.93) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.pinnedCard:hover {
+  border-color: #F5C842;
+  box-shadow: 0 4px 14px rgba(245,200,66,0.25);
+  transform: translateY(-1px);
+  transition: all 0.15s;
+}
+
+.pinnedCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.pinnedAvatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #F5C842;
+  color: #3A2900;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pinnedMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pinnedName {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #3A2900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pinnedId {
+  font-size: 0.62rem;
+  color: #A8924A;
+  font-family: monospace;
+}
+.pinnedDot {
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.pinnedContent {
+  font-size: 0.82rem;
+  color: #3A2900;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
