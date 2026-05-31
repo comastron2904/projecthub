@@ -18,7 +18,6 @@ interface Submission {
 interface MediaItem { type: 'video' | 'image' | 'embed'; url: string; caption: string }
 interface Forum { id: string; subject_id: string | null; title: string; description: string; media_items: MediaItem[]; is_active: boolean; layout_media: number; layout_comment: number; comment_height: number; anonymous: boolean; password: string; notice: string }
 interface Poll { id: string; forum_id: string; question: string; poll_type: 'choice' | 'text'; options: string[]; time_limit: number | null; is_active: boolean; created_at: string }
-interface PollResponse { id: number; poll_id: string; student_id: string; student_name: string; answer: string }
 
 const SUBJECT_ICONS = ['📖','🔬','🎨','🌍','💻','🎵','⚽','📐','🧬','📝']
 
@@ -82,17 +81,14 @@ export default function TeacherDashboard() {
   const [fPassword, setFPassword] = useState('')
   const [fNotice, setFNotice] = useState('')
 
-  // Poll state
+  // Poll state (편집기용 — 생성/수정/삭제만)
   const [polls, setPolls] = useState<Poll[]>([])
-  const [pollResponses, setPollResponses] = useState<PollResponse[]>([])
   const [pollView, setPollView] = useState<'list' | 'creator'>('list')
   const [currentPollId, setCurrentPollId] = useState<string | null>(null)
   const [pQuestion, setPQuestion] = useState('')
   const [pType, setPType] = useState<'choice' | 'text'>('choice')
   const [pOptions, setPOptions] = useState<string[]>(['', ''])
-  const [pTimeLimit, setPTimeLimit] = useState<string>('') // empty = no limit
-  const [resultPollId, setResultPollId] = useState<string | null>(null)
-  const [launchingPollId, setLaunchingPollId] = useState<string | null>(null)
+  const [pTimeLimit, setPTimeLimit] = useState<string>('')
 
   /* ── Auth guard ── */
   useEffect(() => {
@@ -516,34 +512,6 @@ export default function TeacherDashboard() {
     await supabase.from('forum_polls').delete().eq('id', id)
     setPolls(prev => prev.filter(p => p.id !== id))
     showToast('🗑 설문조사가 삭제되었습니다.')
-  }
-
-  async function launchPoll(pollId: string) {
-    if (launchingPollId) return
-    setLaunchingPollId(pollId)
-    // 먼저 모든 설문 비활성화
-    await supabase.from('forum_polls').update({ is_active: false }).eq('forum_id', currentForumId!)
-    // 해당 설문 활성화
-    const { error } = await supabase.from('forum_polls').update({ is_active: true }).eq('id', pollId)
-    // 응답 초기화
-    await supabase.from('forum_poll_responses').delete().eq('poll_id', pollId)
-    if (!error) {
-      setPolls(prev => prev.map(p => ({ ...p, is_active: p.id === pollId })))
-      showToast('📢 설문조사가 학생들에게 전송되었습니다!')
-    }
-    setLaunchingPollId(null)
-  }
-
-  async function closePoll(pollId: string) {
-    await supabase.from('forum_polls').update({ is_active: false }).eq('id', pollId)
-    setPolls(prev => prev.map(p => p.id === pollId ? { ...p, is_active: false } : p))
-    showToast('🔚 설문조사가 종료되었습니다.')
-  }
-
-  async function openPollResult(pollId: string) {
-    const { data } = await supabase.from('forum_poll_responses').select('*').eq('poll_id', pollId)
-    if (data) setPollResponses(data)
-    setResultPollId(pollId)
   }
 
   function getSubjectProjects() { return projects.filter(p => p.subject_id === currentSubjectId) }
@@ -1101,76 +1069,21 @@ export default function TeacherDashboard() {
                       📊 실시간 설문조사 <span>{polls.length}개</span>
                     </div>
 
-                    {/* 결과 팝업 */}
-                    {resultPollId && (() => {
-                      const rPoll = polls.find(p => p.id === resultPollId)
-                      if (!rPoll) return null
-                      return (
-                        <div className={styles.pollResultOverlay} onClick={() => setResultPollId(null)}>
-                          <div className={styles.pollResultBox} onClick={e => e.stopPropagation()}>
-                            <div className={styles.pollResultHeader}>
-                              <span className={styles.pollResultTitle}>📊 응답 결과</span>
-                              <button className={styles.pollResultClose} onClick={() => setResultPollId(null)}>✕</button>
-                            </div>
-                            <div className={styles.pollResultQuestion}>{rPoll.question}</div>
-                            <div className={styles.pollResultCount}>{pollResponses.length}명 응답</div>
-                            {rPoll.poll_type === 'choice' ? (
-                              <div className={styles.pollResultBars}>
-                                {rPoll.options.map((opt, i) => {
-                                  const cnt = pollResponses.filter(r => r.answer === opt).length
-                                  const pct = pollResponses.length ? Math.round(cnt / pollResponses.length * 100) : 0
-                                  return (
-                                    <div key={i} className={styles.pollBar}>
-                                      <div className={styles.pollBarLabel}>{opt}</div>
-                                      <div className={styles.pollBarTrack}>
-                                        <div className={styles.pollBarFill} style={{ width: `${pct}%` }} />
-                                      </div>
-                                      <div className={styles.pollBarStat}>{cnt}명 ({pct}%)</div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            ) : (
-                              <div className={styles.pollTextAnswers}>
-                                {pollResponses.length === 0
-                                  ? <div className={styles.pollNoAnswer}>아직 응답이 없습니다.</div>
-                                  : pollResponses.map((r, i) => (
-                                    <div key={i} className={styles.pollTextAnswer}>
-                                      <span className={styles.pollTextAnswerName}>{r.student_name}</span>
-                                      <span className={styles.pollTextAnswerText}>{r.answer}</span>
-                                    </div>
-                                  ))
-                                }
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })()}
-
                     {pollView === 'list' && (
                       <>
                         {polls.length === 0 && (
-                          <div className={styles.pollEmpty}>아직 설문조사가 없습니다. 아래 버튼으로 추가하세요.</div>
+                          <div className={styles.pollEmpty}>아직 설문조사가 없습니다. 아래 버튼으로 추가하세요.<br /><span style={{fontSize:'0.75rem',color:'var(--text-hint)'}}>실시는 포럼 화면 교사 관리 모드에서 할 수 있습니다.</span></div>
                         )}
                         <div className={styles.pollList}>
                           {polls.map(poll => (
-                            <div key={poll.id} className={`${styles.pollItem} ${poll.is_active ? styles.pollItemActive : ''}`}>
+                            <div key={poll.id} className={styles.pollItem}>
                               <div className={styles.pollItemLeft}>
                                 <span className={styles.pollTypeBadge}>{poll.poll_type === 'choice' ? '선택형' : '단답형'}</span>
                                 {poll.time_limit && <span className={styles.pollTimeBadge}>⏱ {poll.time_limit}초</span>}
-                                {poll.is_active && <span className={styles.pollActiveBadge}>🔴 진행중</span>}
                                 <span className={styles.pollItemQ}>{poll.question}</span>
                               </div>
                               <div className={styles.pollItemActions}>
-                                <button className={styles.btnPollResult} onClick={() => openPollResult(poll.id)}>📊 결과</button>
-                                {poll.is_active
-                                  ? <button className={styles.btnPollStop} onClick={() => closePoll(poll.id)}>🔚 종료</button>
-                                  : <button className={styles.btnPollLaunch} onClick={() => launchPoll(poll.id)} disabled={launchingPollId === poll.id}>
-                                      {launchingPollId === poll.id ? '전송중...' : '📢 실시'}
-                                    </button>
-                                }
-                                <button className={styles.btnPollEdit} onClick={() => openPollCreator(poll)}>✏️</button>
+                                <button className={styles.btnPollEdit} onClick={() => openPollCreator(poll)}>✏️ 편집</button>
                                 <button className={styles.stageDelBtn} onClick={() => deletePoll(poll.id)}>✕</button>
                               </div>
                             </div>
