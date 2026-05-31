@@ -259,6 +259,14 @@
 .addMediaInput:focus { border-color: var(--accent-border); }
 .btnAddMedia { padding: 0.5rem 0.85rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; flex-shrink: 0; }
 .btnAddMedia:hover { background: #6344a8; }
+.addMediaSectionLabel { font-size: 0.75rem; font-weight: 700; color: var(--text-sub); letter-spacing: 0.03em; margin-bottom: 0.1rem; }
+.addMediaDivider { height: 1px; background: var(--border); margin: 0.35rem 0; }
+.btnUploadFile { padding: 0.5rem 0.9rem; background: #0f766e; color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; flex-shrink: 0; white-space: nowrap; transition: background 0.15s; }
+.btnUploadFile:hover:not(:disabled) { background: #0d5f58; }
+.btnUploadFile:disabled { opacity: 0.6; cursor: not-allowed; }
+.uploadProgressBar { height: 4px; background: #d1fae5; border-radius: 99px; overflow: hidden; }
+.uploadProgressFill { height: 100%; width: 60%; background: #0f766e; border-radius: 99px; animation: uploadPulse 1.2s ease-in-out infinite; }
+@keyframes uploadPulse { 0%,100%{opacity:1;width:40%} 50%{opacity:0.7;width:85%} }
 
 /* Layout slider */
 .sliderWrap { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.4rem; }
