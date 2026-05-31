@@ -647,6 +647,9 @@
 .pollBoxTimer {
   font-size: 1rem; font-weight: 800; transition: color 0.3s;
 }
+.pollBoxHeaderRight {
+  display: flex; align-items: center; gap: 0.6rem;
+}
 
 /* 타이머 바 */
 .pollTimerBar {
@@ -704,4 +707,11 @@
 /* 제출 완료 */
 .pollDone { text-align: center; padding: 2rem 1rem; }
 .pollDoneIcon { font-size: 3rem; margin-bottom: 0.5rem; }
-.pollDoneText { font-size: 1rem; font-weight: 700; color: #15803d; }
+.pollDoneText { font-size: 1rem; font-weight: 700; color: #15803d; margin-bottom: 1rem; }
+.pollDoneClose {
+  padding: 0.4rem 1.2rem; border: 1.5px solid #d1d5db;
+  border-radius: 8px; background: white; color: #6b7280;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif; transition: all 0.15s;
+}
+.pollDoneClose:hover { border-color: #9ca3af; color: #374151; }
