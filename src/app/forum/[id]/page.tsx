@@ -17,7 +17,7 @@ interface Comment {
 }
 interface Poll {
   id: string; forum_id: string; question: string; poll_type: 'choice' | 'text'
-  options: string[]; time_limit: number | null; is_active: boolean
+  options: string[]; time_limit: number | null; is_active: boolean; show_result: boolean
 }
 interface PollResponse { id: number; poll_id: string; student_id: string; student_name: string; answer: string }
 
@@ -125,13 +125,18 @@ export default function ForumPage() {
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
   // Poll state
+  const [allPolls, setAllPolls] = useState<Poll[]>([])
   const [activePoll, setActivePoll] = useState<Poll | null>(null)
   const [pollResponses, setPollResponses] = useState<PollResponse[]>([])
   const [pollAnswer, setPollAnswer] = useState('')
   const [pollSubmitted, setPollSubmitted] = useState(false)
   const [pollSubmitting, setPollSubmitting] = useState(false)
   const [pollTimeLeft, setPollTimeLeft] = useState<number | null>(null)
-  const [showPollResult, setShowPollResult] = useState(false)
+  const [showPollPanel, setShowPollPanel] = useState(false)
+  const [launchingId, setLaunchingId] = useState<string | null>(null)
+  // 결과 공개: 학생이 직접 팝업 닫았는지 여부 (닫은 후엔 재등장 X)
+  const [studentClosedResult, setStudentClosedResult] = useState(false)
+  const [studentClosedPoll, setStudentClosedPoll] = useState(false)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   /* ── Auth ── */
@@ -207,23 +212,22 @@ export default function ForumPage() {
 
   useEffect(() => { loadComments() }, [loadComments])
 
-  /* ── Poll: 활성 설문조사 구독 ── */
+  /* ── Poll: 전체 목록 + 활성 설문 초기 로드 ── */
   useEffect(() => {
-    async function loadActivePoll() {
+    async function loadPolls() {
       const { data } = await supabase.from('forum_polls')
-        .select('*').eq('forum_id', forumId).eq('is_active', true).maybeSingle()
+        .select('*').eq('forum_id', forumId).order('created_at')
       if (data) {
-        setActivePoll(data)
-        setPollSubmitted(false)
-        setPollAnswer('')
-        setShowPollResult(false)
-        if (data.time_limit) setPollTimeLeft(data.time_limit)
-      } else {
-        setActivePoll(null)
-        setPollTimeLeft(null)
+        setAllPolls(data)
+        const active = data.find((p: Poll) => p.is_active) ?? null
+        if (active) {
+          setActivePoll(active)
+          setPollSubmitted(false)
+          setPollAnswer('')
+        }
       }
     }
-    loadActivePoll()
+    loadPolls()
 
     const channel = supabase
       .channel(`forum_poll_${forumId}`)
@@ -232,44 +236,52 @@ export default function ForumPage() {
         filter: `forum_id=eq.${forumId}`,
       }, (payload) => {
         const updated = payload.new as Poll
+        setAllPolls(prev => prev.map(p => p.id === updated.id ? updated : p))
         if (updated.is_active) {
           setActivePoll(updated)
           setPollSubmitted(false)
           setPollAnswer('')
-          setShowPollResult(false)
-          if (updated.time_limit) setPollTimeLeft(updated.time_limit)
-          else setPollTimeLeft(null)
+          setStudentClosedResult(false)  // 새 설문이면 결과 닫힘 상태 리셋
+          setStudentClosedPoll(false)
         } else {
-          if (activePoll?.id === updated.id) setActivePoll(null)
+          setActivePoll(prev => {
+            if (prev?.id === updated.id) {
+              // 종료 시 show_result도 반영
+              return { ...prev, ...updated }
+            }
+            return prev
+          })
+          // is_active=false가 됐을 때 activePoll 제거 타이밍:
+          // show_result가 true라면 결과 팝업은 유지 (activePoll은 남겨둠)
+          if (!updated.show_result) {
+            setActivePoll(prev => prev?.id === updated.id ? null : prev)
+          }
         }
       })
       .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'forum_poll_responses',
-        filter: `poll_id=eq.${activePoll?.id ?? 'none'}`,
-      }, async (payload) => {
-        if (isTeacher) {
-          setPollResponses(prev => {
-            const exists = prev.find(r => r.id === (payload.new as PollResponse).id)
-            return exists ? prev : [...prev, payload.new as PollResponse]
-          })
-        }
+        event: 'INSERT', schema: 'public', table: 'forum_polls',
+        filter: `forum_id=eq.${forumId}`,
+      }, (payload) => {
+        setAllPolls(prev => [...prev, payload.new as Poll])
+      })
+      .on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'forum_polls',
+        filter: `forum_id=eq.${forumId}`,
+      }, (payload) => {
+        setAllPolls(prev => prev.filter(p => p.id !== (payload.old as Poll).id))
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forumId, supabase, isTeacher])
+  }, [forumId, supabase])
 
   /* ── Poll 타이머 ── */
   useEffect(() => {
     if (pollTimerRef.current) clearInterval(pollTimerRef.current)
-    if (!activePoll?.time_limit) return
+    if (!activePoll?.time_limit) { setPollTimeLeft(null); return }
     setPollTimeLeft(activePoll.time_limit)
     pollTimerRef.current = setInterval(() => {
       setPollTimeLeft(prev => {
-        if (prev === null || prev <= 1) {
-          clearInterval(pollTimerRef.current!)
-          return null
-        }
+        if (prev === null || prev <= 1) { clearInterval(pollTimerRef.current!); return null }
         return prev - 1
       })
     }, 1000)
@@ -277,16 +289,16 @@ export default function ForumPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePoll?.id])
 
-  /* ── Poll 응답 교사용 실시간 로드 ── */
+  /* ── Poll 응답 실시간 구독 (교사 + 학생 모두) ── */
   useEffect(() => {
-    if (!isTeacher || !activePoll) return
+    if (!activePoll) { setPollResponses([]); return }
     async function loadResponses() {
       const { data } = await supabase.from('forum_poll_responses').select('*').eq('poll_id', activePoll!.id)
       if (data) setPollResponses(data)
     }
     loadResponses()
     const channel = supabase
-      .channel(`poll_resp_teacher_${activePoll.id}`)
+      .channel(`poll_resp_${activePoll.id}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'forum_poll_responses',
         filter: `poll_id=eq.${activePoll.id}`,
@@ -298,7 +310,7 @@ export default function ForumPage() {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [isTeacher, activePoll?.id, supabase])
+  }, [activePoll?.id, supabase])
 
   async function submitPollAnswer() {
     if (!activePoll || !student || pollSubmitting || pollSubmitted) return
@@ -310,14 +322,50 @@ export default function ForumPage() {
       student_name: student.name,
       answer: pollAnswer.trim(),
     }, { onConflict: 'poll_id,student_id' })
-    if (!error) { setPollSubmitted(true) }
+    if (!error) setPollSubmitted(true)
     setPollSubmitting(false)
   }
 
-  async function teacherClosePoll() {
+  async function launchPoll(pollId: string) {
+    if (launchingId) return
+    setLaunchingId(pollId)
+    await supabase.from('forum_polls').update({ is_active: false, show_result: false }).eq('forum_id', forumId)
+    await supabase.from('forum_poll_responses').delete().eq('poll_id', pollId)
+    await supabase.from('forum_polls').update({ is_active: true, show_result: false }).eq('id', pollId)
+    setAllPolls(prev => prev.map(p => ({ ...p, is_active: p.id === pollId, show_result: false })))
+    setStudentClosedResult(false)
+    setStudentClosedPoll(false)
+    setShowPollPanel(false)
+    setLaunchingId(null)
+  }
+
+  async function closePoll() {
     if (!activePoll) return
     await supabase.from('forum_polls').update({ is_active: false }).eq('id', activePoll.id)
-    setActivePoll(null)
+    // show_result가 true였으면 유지(결과 계속 보임), false였으면 activePoll 클리어
+    if (!activePoll.show_result) {
+      setActivePoll(null)
+      setPollResponses([])
+    } else {
+      setActivePoll(prev => prev ? { ...prev, is_active: false } : null)
+    }
+  }
+
+  async function showPollResult() {
+    if (!activePoll) return
+    await supabase.from('forum_polls').update({ show_result: true }).eq('id', activePoll.id)
+    setActivePoll(prev => prev ? { ...prev, show_result: true } : null)
+  }
+
+  async function hidePollResult() {
+    if (!activePoll) return
+    await supabase.from('forum_polls').update({ show_result: false }).eq('id', activePoll.id)
+    setActivePoll(prev => prev ? { ...prev, show_result: false } : null)
+    // 설문이 이미 종료됐다면 activePoll도 클리어
+    if (!activePoll.is_active) {
+      setActivePoll(null)
+      setPollResponses([])
+    }
   }
 
   /* ── Auto scroll ── */
@@ -406,75 +454,85 @@ export default function ForumPage() {
   const commentsOn = forum.comments_enabled !== false
   const pinnedComments = comments.filter(c => c.is_pinned)
 
-  /* ── Poll 팝업 렌더 ── */
-  function renderPollPopup() {
-    if (!activePoll) return null
-    const timerPct = (activePoll.time_limit && pollTimeLeft !== null)
-      ? (pollTimeLeft / activePoll.time_limit) * 100 : null
+  /* ── 학생/교사 공통 결과 렌더 헬퍼 ── */
+  function renderResultContent(poll: Poll, responses: PollResponse[], total: number) {
+    if (poll.poll_type === 'choice') {
+      return (
+        <div className={styles.pollResultBars}>
+          {poll.options.map((opt, i) => {
+            const cnt = responses.filter(r => r.answer === opt).length
+            const pct = total ? Math.round(cnt / total * 100) : 0
+            return (
+              <div key={i} className={styles.pollResultBar}>
+                <span className={styles.pollResultBarLabel}>{opt}</span>
+                <div className={styles.pollResultBarTrack}>
+                  <div className={styles.pollResultBarFill} style={{ width: `${pct}%` }} />
+                </div>
+                <span className={styles.pollResultBarStat}>{cnt}명 {pct}%</span>
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+    return (
+      <div className={styles.pollResultAnswers}>
+        {responses.length === 0
+          ? <span className={styles.pollResultEmpty}>아직 응답이 없습니다.</span>
+          : responses.map((r, i) => (
+            <div key={i} className={styles.pollResultAnswerChip}>
+              <span className={styles.pollResultAnswerName}>{r.student_name}</span>
+              <span className={styles.pollResultAnswerText}>{r.answer}</span>
+            </div>
+          ))
+        }
+      </div>
+    )
+  }
 
-    // 교사용 팝업
-    if (isTeacher) {
-      const totalResp = pollResponses.length
+  /* ── 학생용 팝업 ── */
+  function renderStudentPoll() {
+    if (isTeacher || !activePoll) return null
+
+    // 결과 공개 중이고 학생이 아직 안 닫은 경우 → 결과 팝업
+    if (activePoll.show_result && !studentClosedResult) {
+      const total = pollResponses.length
       return (
         <div className={styles.pollOverlay}>
           <div className={styles.pollBox}>
             <div className={styles.pollBoxHeader}>
-              <span className={styles.pollBoxBadge}>🔴 진행중인 설문조사</span>
-              <button className={styles.pollBoxClose} onClick={teacherClosePoll}>🔚 종료</button>
+              <span className={styles.pollBoxBadge} style={{ background: '#0f766e' }}>📊 설문 결과</span>
+              <button className={styles.pollResultCloseBtn} onClick={() => setStudentClosedResult(true)}>✕ 닫기</button>
             </div>
-            {timerPct !== null && (
-              <div className={styles.pollTimerBar}>
-                <div className={styles.pollTimerFill} style={{ width: `${timerPct}%`, background: timerPct < 25 ? '#ef4444' : timerPct < 50 ? '#f59e0b' : '#7c5cbf' }} />
-                <span className={styles.pollTimerLabel}>{pollTimeLeft}초</span>
-              </div>
-            )}
             <div className={styles.pollQuestion}>{activePoll.question}</div>
-            <div className={styles.pollRespCount}>현재 응답: {totalResp}명</div>
-            {activePoll.poll_type === 'choice' ? (
-              <div className={styles.pollResultBarsLive}>
-                {activePoll.options.map((opt, i) => {
-                  const cnt = pollResponses.filter(r => r.answer === opt).length
-                  const pct = totalResp ? Math.round(cnt / totalResp * 100) : 0
-                  return (
-                    <div key={i} className={styles.pollBarLive}>
-                      <div className={styles.pollBarLiveLabel}>{opt}</div>
-                      <div className={styles.pollBarLiveTrack}>
-                        <div className={styles.pollBarLiveFill} style={{ width: `${pct}%` }} />
-                      </div>
-                      <div className={styles.pollBarLiveStat}>{cnt}명 ({pct}%)</div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className={styles.pollTextAnswersLive}>
-                {pollResponses.length === 0
-                  ? <div className={styles.pollNoAnswer}>아직 응답이 없습니다...</div>
-                  : pollResponses.map((r, i) => (
-                    <div key={i} className={styles.pollTextAnswerLive}>
-                      <span className={styles.pollTextAnswerNameLive}>{r.student_name}</span>
-                      <span className={styles.pollTextAnswerTextLive}>{r.answer}</span>
-                    </div>
-                  ))
-                }
-              </div>
-            )}
+            <div className={styles.pollResultMeta}>{total}명 응답</div>
+            {renderResultContent(activePoll, pollResponses, total)}
           </div>
         </div>
       )
     }
 
-    // 학생용 팝업
+    // 진행 중인 설문 (응답 팝업) — 학생이 닫았으면 표시 안 함
+    if (!activePoll.is_active || studentClosedPoll) return null
+    const timerPct = (activePoll.time_limit && pollTimeLeft !== null)
+      ? (pollTimeLeft / activePoll.time_limit) * 100 : null
     return (
       <div className={styles.pollOverlay}>
         <div className={styles.pollBox}>
           <div className={styles.pollBoxHeader}>
             <span className={styles.pollBoxBadge}>📊 설문조사</span>
+            <div className={styles.pollBoxHeaderRight}>
+              {timerPct !== null && (
+                <span className={styles.pollBoxTimer} style={{ color: timerPct < 25 ? '#ef4444' : timerPct < 50 ? '#f59e0b' : '#7c5cbf' }}>
+                  {pollTimeLeft}초
+                </span>
+              )}
+              <button className={styles.pollResultCloseBtn} onClick={() => setStudentClosedPoll(true)}>✕</button>
+            </div>
           </div>
           {timerPct !== null && (
             <div className={styles.pollTimerBar}>
               <div className={styles.pollTimerFill} style={{ width: `${timerPct}%`, background: timerPct < 25 ? '#ef4444' : timerPct < 50 ? '#f59e0b' : '#7c5cbf' }} />
-              <span className={styles.pollTimerLabel}>{pollTimeLeft}초 남음</span>
             </div>
           )}
           <div className={styles.pollQuestion}>{activePoll.question}</div>
@@ -482,12 +540,12 @@ export default function ForumPage() {
             <div className={styles.pollDone}>
               <div className={styles.pollDoneIcon}>✅</div>
               <div className={styles.pollDoneText}>응답이 제출되었습니다!</div>
+              <button className={styles.pollDoneClose} onClick={() => setStudentClosedPoll(true)}>닫기</button>
             </div>
           ) : activePoll.poll_type === 'choice' ? (
             <div className={styles.pollChoices}>
               {activePoll.options.map((opt, i) => (
-                <button
-                  key={i}
+                <button key={i}
                   className={`${styles.pollChoiceBtn} ${pollAnswer === opt ? styles.pollChoiceBtnSelected : ''}`}
                   onClick={() => setPollAnswer(opt)}
                 >
@@ -495,28 +553,16 @@ export default function ForumPage() {
                   {opt}
                 </button>
               ))}
-              <button
-                className={styles.btnPollSubmit}
-                onClick={submitPollAnswer}
-                disabled={!pollAnswer || pollSubmitting}
-              >
+              <button className={styles.btnPollSubmit} onClick={submitPollAnswer} disabled={!pollAnswer || pollSubmitting}>
                 {pollSubmitting ? '제출중...' : '제출하기'}
               </button>
             </div>
           ) : (
             <div className={styles.pollTextInput}>
-              <textarea
-                className={styles.pollTextarea}
-                value={pollAnswer}
+              <textarea className={styles.pollTextarea} value={pollAnswer}
                 onChange={e => setPollAnswer(e.target.value)}
-                placeholder="답변을 입력하세요..."
-                rows={3}
-              />
-              <button
-                className={styles.btnPollSubmit}
-                onClick={submitPollAnswer}
-                disabled={!pollAnswer.trim() || pollSubmitting}
-              >
+                placeholder="답변을 입력하세요..." rows={3} />
+              <button className={styles.btnPollSubmit} onClick={submitPollAnswer} disabled={!pollAnswer.trim() || pollSubmitting}>
                 {pollSubmitting ? '제출중...' : '제출하기'}
               </button>
             </div>
@@ -528,8 +574,9 @@ export default function ForumPage() {
 
   return (
     <div className={styles.page}>
-      {/* Poll 팝업 */}
-      {renderPollPopup()}
+      {/* 학생용 설문 팝업 */}
+      {renderStudentPoll()}
+
       {/* Topbar */}
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
@@ -554,40 +601,149 @@ export default function ForumPage() {
         </div>
       </div>
 
-      {/* ── 교사 컨트롤 바 ── */}
+      {/* ── 교사 컨트롤 바 + 설문 패널 ── */}
       {isTeacher && (
-        <div className={styles.teacherControlBar}>
-          <div className={styles.tcBarLeft}>
-            <span className={styles.tcBarBadge}>👩‍🏫 교사 관리 모드</span>
-            <span className={styles.tcBarInfo}>
-              📌 댓글을 클릭하여 화면에 포인트로 표시 · 학생들에게는 이 바가 보이지 않습니다
-            </span>
-          </div>
-          <div className={styles.tcBarRight}>
-            {pinnedComments.length > 0 && (
-              <span className={styles.tcPinnedCount}>
-                📌 {pinnedComments.length}개 표시 중
-              </span>
-            )}
-            {/* 댓글 ON/OFF */}
-            <div className={styles.tcToggleGroup}>
-              <span className={styles.tcToggleLabel}>댓글</span>
-              <button
-                className={`${styles.tcToggle} ${commentsOn ? styles.tcToggleOn : styles.tcToggleOff}`}
-                onClick={toggleComments}
-                disabled={togglingComments}
-              >
-                <div className={styles.tcToggleKnob} />
-              </button>
-              <span className={`${styles.tcToggleStatus} ${commentsOn ? styles.tcStatusOn : styles.tcStatusOff}`}>
-                {commentsOn ? 'ON' : 'OFF'}
+        <div className={styles.teacherControlWrap}>
+          {/* 컨트롤 바 */}
+          <div className={styles.teacherControlBar}>
+            <div className={styles.tcBarLeft}>
+              <span className={styles.tcBarBadge}>👩‍🏫 교사 관리 모드</span>
+              <span className={styles.tcBarInfo}>
+                📌 댓글 클릭 → 화면 포인트 표시 · 학생에게 이 바는 보이지 않습니다
               </span>
             </div>
-            <button className={styles.tcBtnEdit}
-              onClick={() => { sessionStorage.setItem('ph_forum_edit', forumId); router.push('/teacher') }}>
-              ✏️ 포럼 편집
-            </button>
+            <div className={styles.tcBarRight}>
+              {pinnedComments.length > 0 && (
+                <span className={styles.tcPinnedCount}>📌 {pinnedComments.length}개 표시 중</span>
+              )}
+              {/* 설문 버튼 */}
+              {activePoll ? (
+                <button className={styles.tcBtnPollActive} onClick={closePoll}>
+                  🔴 설문 종료
+                </button>
+              ) : (
+                <button
+                  className={`${styles.tcBtnPoll} ${showPollPanel ? styles.tcBtnPollOpen : ''}`}
+                  onClick={() => setShowPollPanel(v => !v)}
+                  disabled={allPolls.length === 0}
+                  title={allPolls.length === 0 ? '편집 화면에서 설문을 먼저 추가하세요' : ''}
+                >
+                  📊 설문 실시 {allPolls.length > 0 && `(${allPolls.length})`}
+                </button>
+              )}
+              {/* 댓글 ON/OFF */}
+              <div className={styles.tcToggleGroup}>
+                <span className={styles.tcToggleLabel}>댓글</span>
+                <button
+                  className={`${styles.tcToggle} ${commentsOn ? styles.tcToggleOn : styles.tcToggleOff}`}
+                  onClick={toggleComments} disabled={togglingComments}
+                >
+                  <div className={styles.tcToggleKnob} />
+                </button>
+                <span className={`${styles.tcToggleStatus} ${commentsOn ? styles.tcStatusOn : styles.tcStatusOff}`}>
+                  {commentsOn ? 'ON' : 'OFF'}
+                </span>
+              </div>
+              <button className={styles.tcBtnEdit}
+                onClick={() => { sessionStorage.setItem('ph_forum_edit', forumId); router.push('/teacher') }}>
+                ✏️ 포럼 편집
+              </button>
+            </div>
           </div>
+
+          {/* ── 설문 선택 드롭다운 패널 ── */}
+          {showPollPanel && !activePoll && (
+            <div className={styles.pollSelectPanel}>
+              <div className={styles.pollSelectTitle}>📋 실시할 설문조사를 선택하세요</div>
+              <div className={styles.pollSelectList}>
+                {allPolls.map(poll => (
+                  <div key={poll.id} className={styles.pollSelectItem}>
+                    <div className={styles.pollSelectInfo}>
+                      <span className={styles.pollSelectBadge}>{poll.poll_type === 'choice' ? '선택형' : '단답형'}</span>
+                      {poll.time_limit && <span className={styles.pollSelectTime}>⏱ {poll.time_limit}초</span>}
+                      <span className={styles.pollSelectQ}>{poll.question}</span>
+                    </div>
+                    <button
+                      className={styles.btnPollGo}
+                      onClick={() => launchPoll(poll.id)}
+                      disabled={launchingId === poll.id}
+                    >
+                      {launchingId === poll.id ? '전송중...' : '▶ 실시'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── 교사 실시간 결과 패널 (진행중일 때) ── */}
+          {activePoll && (() => {
+            const total = pollResponses.length
+            const timerPct = (activePoll.time_limit && pollTimeLeft !== null)
+              ? (pollTimeLeft / activePoll.time_limit) * 100 : null
+            return (
+              <div className={styles.pollLivePanel}>
+                <div className={styles.pollLivePanelHeader}>
+                  <div className={styles.pollLiveLeft}>
+                    <span className={styles.pollLiveBadge}>🔴 진행중</span>
+                    <span className={styles.pollLiveQ}>{activePoll.question}</span>
+                    <span className={styles.pollLiveCount}>{total}명 응답</span>
+                  </div>
+                  <div className={styles.pollLiveActions}>
+                    {/* 결과 공개 / 공개 종료 버튼 */}
+                    {activePoll.show_result ? (
+                      <button className={styles.btnHideResult} onClick={hidePollResult}>
+                        🙈 결과 공개 종료
+                      </button>
+                    ) : (
+                      <button className={styles.btnShowResult} onClick={showPollResult}>
+                        👁 학생에게 결과 공개
+                      </button>
+                    )}
+                    {timerPct !== null && (
+                      <div className={styles.pollLiveTimerWrap}>
+                        <span className={styles.pollLiveTimerNum} style={{ color: timerPct < 25 ? '#ef4444' : timerPct < 50 ? '#f59e0b' : '#7c5cbf' }}>
+                          {pollTimeLeft}초
+                        </span>
+                        <div className={styles.pollLiveTimerBar}>
+                          <div className={styles.pollLiveTimerFill} style={{ width: `${timerPct}%`, background: timerPct < 25 ? '#ef4444' : timerPct < 50 ? '#f59e0b' : '#7c5cbf' }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {activePoll.poll_type === 'choice' ? (
+                  <div className={styles.pollLiveBars}>
+                    {activePoll.options.map((opt, i) => {
+                      const cnt = pollResponses.filter(r => r.answer === opt).length
+                      const pct = total ? Math.round(cnt / total * 100) : 0
+                      return (
+                        <div key={i} className={styles.pollLiveBar}>
+                          <span className={styles.pollLiveBarLabel}>{opt}</span>
+                          <div className={styles.pollLiveBarTrack}>
+                            <div className={styles.pollLiveBarFill} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className={styles.pollLiveBarStat}>{cnt}명 {pct}%</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className={styles.pollLiveAnswers}>
+                    {pollResponses.length === 0
+                      ? <span className={styles.pollLiveEmpty}>아직 응답이 없습니다...</span>
+                      : pollResponses.map((r, i) => (
+                        <div key={i} className={styles.pollLiveAnswerChip}>
+                          <span className={styles.pollLiveAnswerName}>{r.student_name}</span>
+                          <span className={styles.pollLiveAnswerText}>{r.answer}</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
       )}
 
