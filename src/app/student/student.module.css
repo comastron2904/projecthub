@@ -134,3 +134,226 @@
 .forumCardDesc { font-size: 0.8rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 0.3rem; }
 .forumCardMeta { display: flex; gap: 0.5rem; font-size: 0.72rem; color: var(--text-hint); }
 .forumCardArrow { font-size: 1.1rem; color: var(--accent); flex-shrink: 0; font-weight: 700; }
+
+/* ══════════════════════════════════════════
+   메인 탭 (활동 / 내 활동 기록)
+══════════════════════════════════════════ */
+.mainTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 1.5rem;
+}
+.mainTab {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0.6rem 1rem;
+  border: none; background: none; border-radius: 9px;
+  font-size: 0.88rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500;
+  color: var(--text-sub); cursor: pointer; transition: all 0.2s;
+}
+.mainTabActive {
+  background: var(--student);
+  color: white;
+  box-shadow: 0 2px 8px rgba(45,90,61,0.25);
+  font-weight: 700;
+}
+.mainTabBadge {
+  background: white;
+  color: var(--student);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+  min-width: 20px;
+  text-align: center;
+}
+.mainTabActive .mainTabBadge {
+  background: rgba(255,255,255,0.25);
+  color: white;
+}
+
+/* ══════════════════════════════════════════
+   내 활동 기록 탭
+══════════════════════════════════════════ */
+.recordPage {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 요약 카드 3개 */
+.recordSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+.recordSummaryCard {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.recordSummaryNum {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--student);
+  font-family: 'DM Serif Display', serif;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+.recordSummaryLabel {
+  font-size: 0.75rem;
+  color: var(--text-hint);
+  font-weight: 500;
+}
+
+/* 섹션 */
+.recordSection {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+}
+.recordSectionTitle {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.recordSectionCount {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--student-light);
+  color: var(--student);
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+.recordEmpty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-hint);
+  font-size: 0.85rem;
+}
+.recordList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+/* 프로젝트 카드 */
+.recordProjCard {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.recordProjCard:hover {
+  border-color: var(--student-border);
+  background: var(--student-light);
+  transform: translateY(-1px);
+}
+.recordProjTop {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.recordSubjBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--student);
+  background: var(--student-light);
+  border: 1px solid var(--student-border);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.recordDate {
+  font-size: 0.7rem;
+  color: var(--text-hint);
+}
+.recordProjTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+.recordProjMeta {
+  display: flex; gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-hint);
+  margin-bottom: 0.55rem;
+}
+.recordProgressWrap {
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.recordProgressBar {
+  flex: 1; height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.recordProgressFill {
+  height: 100%;
+  background: var(--student);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.recordProgressPct {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--student);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* 포럼 댓글 카드 */
+.recordCommentCard {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.recordCommentCard:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-light);
+  transform: translateY(-1px);
+}
+.recordCommentTop {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.recordForumBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  padding: 2px 8px;
+  border-radius: 20px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recordCommentContent {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
