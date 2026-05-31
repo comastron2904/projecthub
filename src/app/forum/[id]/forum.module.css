@@ -127,3 +127,100 @@
 }
 .btnSend:hover { background: #1e4029; }
 .btnSend:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Notice banner */
+.noticeBanner {
+  background: #FFF8E6; border: 1.5px solid #F5C842;
+  border-radius: 10px; padding: 0.7rem 1rem;
+  font-size: 0.85rem; color: #7A5900; line-height: 1.5; font-weight: 500;
+}
+
+/* Password page */
+.passwordPage {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; background: var(--bg); padding: 1rem;
+}
+.passwordBox {
+  background: white; border-radius: 18px; border: 1.5px solid var(--border);
+  padding: 2.5rem 2rem; width: 100%; max-width: 380px; text-align: center;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.passwordIcon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.passwordTitle { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.passwordDesc { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 1.5rem; }
+.passwordInput {
+  width: 100%; padding: 0.75rem 1rem; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 1rem; font-family: 'Noto Sans KR', sans-serif; text-align: center;
+  outline: none; margin-bottom: 0.5rem; letter-spacing: 0.15em;
+}
+.passwordInput:focus { border-color: var(--student-border); }
+.passwordError { font-size: 0.78rem; color: var(--danger); margin-bottom: 0.5rem; }
+.btnPasswordEnter {
+  width: 100%; padding: 0.8rem; background: var(--student); color: white; border: none;
+  border-radius: 10px; font-size: 0.92rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; margin-bottom: 0.6rem;
+}
+.btnPasswordEnter:hover { background: #1e4029; }
+.btnPasswordBack {
+  background: none; border: none; font-size: 0.8rem; color: var(--text-hint);
+  cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+}
+.btnPasswordBack:hover { color: var(--text-sub); }
+
+/* Teacher control bar */
+.teacherControlBar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #1A1814; color: white;
+  padding: 0.6rem 1.25rem; flex-shrink: 0; gap: 1rem;
+}
+.tcBarLeft { display: flex; align-items: center; gap: 0.75rem; }
+.tcBarBadge { font-size: 0.78rem; font-weight: 700; background: var(--accent); color: white; padding: 3px 10px; border-radius: 20px; }
+.tcBarInfo { font-size: 0.72rem; color: #A8A49E; }
+.tcBarRight { display: flex; align-items: center; gap: 1rem; }
+
+/* Toggle switch */
+.tcToggleGroup { display: flex; align-items: center; gap: 0.5rem; }
+.tcToggleLabel { font-size: 0.78rem; color: #D4D0C8; font-weight: 600; }
+.tcToggle {
+  width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer;
+  position: relative; transition: background 0.2s; flex-shrink: 0; padding: 0;
+}
+.tcToggleOn { background: #2D8A4E; }
+.tcToggleOff { background: #555; }
+.tcToggle:disabled { opacity: 0.6; cursor: not-allowed; }
+.tcToggleKnob {
+  width: 18px; height: 18px; border-radius: 50%; background: white;
+  position: absolute; top: 3px; transition: left 0.2s;
+}
+.tcToggleOn .tcToggleKnob { left: 23px; }
+.tcToggleOff .tcToggleKnob { left: 3px; }
+.tcToggleStatus { font-size: 0.72rem; font-weight: 700; min-width: 24px; }
+.tcStatusOn { color: #6BD49A; }
+.tcStatusOff { color: #888; }
+
+.tcBtnEdit {
+  padding: 0.38rem 0.85rem; background: #2A2724; color: #D4D0C8;
+  border: 1.5px solid #444; border-radius: 8px;
+  font-size: 0.78rem; font-weight: 700; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; transition: all 0.15s;
+}
+.tcBtnEdit:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* Teacher identity */
+.teacherIdentity { background: #F0EBF8 !important; border-color: var(--accent-border) !important; }
+.teacherAvatar { background: var(--accent) !important; font-size: 0.9rem !important; }
+.teacherTag { font-size: 0.82rem; color: var(--accent); font-weight: 700; background: var(--accent-light); padding: 3px 10px; border-radius: 20px; }
+
+/* Comment controls */
+.commentHeaderRight { display: flex; align-items: center; gap: 0.5rem; }
+.commentsOffBadge { font-size: 0.7rem; font-weight: 700; color: var(--danger); background: var(--danger-light); padding: 2px 8px; border-radius: 20px; }
+.btnDeleteComment {
+  background: none; border: none; cursor: pointer; font-size: 0.78rem;
+  opacity: 0.4; padding: 0 2px; margin-left: auto; flex-shrink: 0;
+}
+.btnDeleteComment:hover { opacity: 1; }
+.commentsOffBox {
+  padding: 0.85rem 1.1rem; background: var(--danger-light); color: var(--danger);
+  font-size: 0.83rem; font-weight: 500; text-align: center; flex-shrink: 0;
+  border-top: 1px solid #F5BCBC;
+}
