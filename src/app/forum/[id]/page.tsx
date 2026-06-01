@@ -10,6 +10,7 @@ interface Forum {
   layout_media: number; layout_comment: number; comment_height: number
   anonymous: boolean; password: string; notice: string
   comments_enabled: boolean; replies_enabled: boolean
+  teacher_comment: string
 }
 interface Comment {
   id: number; student_id: string; student_name: string; content: string; created_at: string
@@ -247,6 +248,10 @@ export default function ForumPage() {
   const [teacherName, setTeacherName] = useState('')
 
   const [forum, setForum] = useState<Forum | null>(null)
+  const [teacherComment, setTeacherComment] = useState('')
+  const [teacherCommentInput, setTeacherCommentInput] = useState('')
+  const [teacherCommentEditing, setTeacherCommentEditing] = useState(false)
+  const [teacherCommentSaving, setTeacherCommentSaving] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
   const [commentInput, setCommentInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -314,10 +319,25 @@ export default function ForumPage() {
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from('forums').select('*').eq('id', forumId).single()
-      if (data) setForum(data)
+      if (data) {
+        setForum(data)
+        setTeacherComment(data.teacher_comment ?? '')
+        setTeacherCommentInput(data.teacher_comment ?? '')
+      }
     }
     load()
   }, [forumId, supabase])
+
+  /* ── Teacher comment save ── */
+  async function saveTeacherComment() {
+    setTeacherCommentSaving(true)
+    const { error } = await supabase.from('forums').update({ teacher_comment: teacherCommentInput }).eq('id', forumId)
+    if (!error) {
+      setTeacherComment(teacherCommentInput)
+      setTeacherCommentEditing(false)
+    }
+    setTeacherCommentSaving(false)
+  }
 
   /* ── Realtime: comments INSERT + UPDATE ── */
   useEffect(() => {
@@ -586,14 +606,15 @@ export default function ForumPage() {
   }
 
   async function submitComment() {
-    if (!student || !commentInput.trim() || submitting) return
-    if (!forum?.comments_enabled) return
+    if (!commentInput.trim() || submitting) return
+    if (!isTeacher && !student) return
+    if (!isTeacher && !forum?.comments_enabled) return
     setSubmitting(true)
-    const isAnon = forum?.anonymous ?? false
+    const isAnon = !isTeacher && (forum?.anonymous ?? false)
     const { error } = await supabase.from('forum_comments').insert({
       forum_id: forumId,
-      student_id: student.id,
-      student_name: isAnon ? '익명' : student.name,
+      student_id: isTeacher ? 'TEACHER' : student!.id,
+      student_name: isTeacher ? `👩‍🏫 ${teacherName || '교사'}` : (isAnon ? '익명' : student!.name),
       content: commentInput.trim(),
       parent_id: replyingTo?.id ?? null,
     })
@@ -732,12 +753,11 @@ export default function ForumPage() {
 
   /* ── 입력창 렌더 (데스크탑·모바일 공용) ── */
   function renderInputArea() {
-    if (isTeacher) return null
-    if (!commentsOn) return (
+    if (!isTeacher && !commentsOn) return (
       <div className={styles.commentsOffBox}>🔇 현재 교사가 댓글을 비활성화했습니다.</div>
     )
     return (
-      <div className={styles.commentInputBox}>
+      <div className={`${styles.commentInputBox} ${isTeacher ? styles.teacherInputBox : ''}`}>
         {replyingTo && (
           <div className={styles.replyingToBar}>
             <span className={styles.replyingToLabel}>↩ {replyingTo.student_name}에게 답글</span>
@@ -749,7 +769,9 @@ export default function ForumPage() {
             className={styles.commentInput}
             value={commentInput}
             onChange={e => setCommentInput(e.target.value)}
-            placeholder={replyingTo ? `${replyingTo.student_name}에게 답글...` : '의견을 입력하세요...'}
+            placeholder={isTeacher
+              ? (replyingTo ? `${replyingTo.student_name}에게 답글...` : '교사 댓글을 입력하세요...')
+              : (replyingTo ? `${replyingTo.student_name}에게 답글...` : '의견을 입력하세요...')}
             rows={2}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment() } }}
           />
@@ -927,6 +949,39 @@ export default function ForumPage() {
               {!commentsOn && <span className={styles.commentsOffBadge}>🔇 비활성</span>}
             </div>
           </div>
+
+          {/* 교사 코멘트 */}
+          {(teacherComment || isTeacher) && (
+            <div className={styles.teacherCommentBox}>
+              <div className={styles.teacherCommentLabel}>
+                <span>👩‍🏫 교사 코멘트</span>
+                {isTeacher && !teacherCommentEditing && (
+                  <button className={styles.teacherCommentEditBtn} onClick={() => setTeacherCommentEditing(true)}>✏️ 편집</button>
+                )}
+              </div>
+              {isTeacher && teacherCommentEditing ? (
+                <div className={styles.teacherCommentEditArea}>
+                  <textarea
+                    className={styles.teacherCommentTextarea}
+                    value={teacherCommentInput}
+                    onChange={e => setTeacherCommentInput(e.target.value)}
+                    placeholder="학생들에게 보여줄 코멘트를 입력하세요..."
+                    rows={3}
+                  />
+                  <div className={styles.teacherCommentActions}>
+                    <button className={styles.teacherCommentCancelBtn} onClick={() => { setTeacherCommentInput(teacherComment); setTeacherCommentEditing(false) }}>취소</button>
+                    <button className={styles.teacherCommentSaveBtn} onClick={saveTeacherComment} disabled={teacherCommentSaving}>
+                      {teacherCommentSaving ? '저장 중...' : '저장'}
+                    </button>
+                  </div>
+                </div>
+              ) : teacherComment ? (
+                <div className={styles.teacherCommentText}>{teacherComment}</div>
+              ) : (
+                <div className={styles.teacherCommentEmpty}>아직 코멘트가 없습니다. 편집 버튼을 눌러 작성하세요.</div>
+              )}
+            </div>
+          )}
 
           {/* 학생 정체성 */}
           {!isTeacher && (
@@ -1216,6 +1271,39 @@ export default function ForumPage() {
               {!commentsOn && <span className={styles.commentsOffBadge}>🔇 댓글 비활성</span>}
             </div>
           </div>
+
+          {/* 교사 코멘트 */}
+          {(teacherComment || isTeacher) && (
+            <div className={styles.teacherCommentBox}>
+              <div className={styles.teacherCommentLabel}>
+                <span>👩‍🏫 교사 코멘트</span>
+                {isTeacher && !teacherCommentEditing && (
+                  <button className={styles.teacherCommentEditBtn} onClick={() => setTeacherCommentEditing(true)}>✏️ 편집</button>
+                )}
+              </div>
+              {isTeacher && teacherCommentEditing ? (
+                <div className={styles.teacherCommentEditArea}>
+                  <textarea
+                    className={styles.teacherCommentTextarea}
+                    value={teacherCommentInput}
+                    onChange={e => setTeacherCommentInput(e.target.value)}
+                    placeholder="학생들에게 보여줄 코멘트를 입력하세요..."
+                    rows={3}
+                  />
+                  <div className={styles.teacherCommentActions}>
+                    <button className={styles.teacherCommentCancelBtn} onClick={() => { setTeacherCommentInput(teacherComment); setTeacherCommentEditing(false) }}>취소</button>
+                    <button className={styles.teacherCommentSaveBtn} onClick={saveTeacherComment} disabled={teacherCommentSaving}>
+                      {teacherCommentSaving ? '저장 중...' : '저장'}
+                    </button>
+                  </div>
+                </div>
+              ) : teacherComment ? (
+                <div className={styles.teacherCommentText}>{teacherComment}</div>
+              ) : (
+                <div className={styles.teacherCommentEmpty}>아직 코멘트가 없습니다. 편집 버튼을 눌러 작성하세요.</div>
+              )}
+            </div>
+          )}
 
           {/* 학생 정체성 */}
           {!isTeacher && (
