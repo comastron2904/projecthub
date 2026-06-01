@@ -9,11 +9,11 @@ interface Forum {
   id: string; title: string; description: string; media_items: MediaItem[]
   layout_media: number; layout_comment: number; comment_height: number
   anonymous: boolean; password: string; notice: string
-  comments_enabled: boolean
+  comments_enabled: boolean; replies_enabled: boolean
 }
 interface Comment {
   id: number; student_id: string; student_name: string; content: string; created_at: string
-  is_pinned?: boolean
+  is_pinned?: boolean; parent_id?: number | null
 }
 interface Poll {
   id: string; forum_id: string; question: string; poll_type: 'choice' | 'text'
@@ -257,6 +257,10 @@ export default function ForumPage() {
   const [togglingComments, setTogglingComments] = useState(false)
   const [pinningId, setPinningId] = useState<number | null>(null)
   const commentsEndRef = useRef<HTMLDivElement>(null)
+  const [mobileCommentOpen, setMobileCommentOpen] = useState(false)
+  // 대댓글
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null)
+  const [togglingReplies, setTogglingReplies] = useState(false)
 
   // Poll state
   const [allPolls, setAllPolls] = useState<Poll[]>([])
@@ -535,6 +539,16 @@ export default function ForumPage() {
     setTogglingComments(false)
   }
 
+  /* ── 대댓글 ON/OFF 토글 (교사 전용) ── */
+  async function toggleReplies() {
+    if (!forum || togglingReplies) return
+    setTogglingReplies(true)
+    const newVal = !forum.replies_enabled
+    await supabase.from('forums').update({ replies_enabled: newVal }).eq('id', forumId)
+    setForum(prev => prev ? { ...prev, replies_enabled: newVal } : prev)
+    setTogglingReplies(false)
+  }
+
   /* ── 댓글 핀 토글 (교사 전용) ── */
   async function togglePin(comment: Comment) {
     if (pinningId === comment.id) return
@@ -565,8 +579,12 @@ export default function ForumPage() {
       student_id: student.id,
       student_name: isAnon ? '익명' : student.name,
       content: commentInput.trim(),
+      parent_id: replyingTo?.id ?? null,
     })
-    if (!error) setCommentInput('')
+    if (!error) {
+      setCommentInput('')
+      setReplyingTo(null)
+    }
     setSubmitting(false)
   }
 
@@ -604,7 +622,99 @@ export default function ForumPage() {
 
   const mediaItems: MediaItem[] = forum.media_items || []
   const commentsOn = forum.comments_enabled !== false
+  const repliesOn = forum.replies_enabled !== false
   const pinnedComments = comments.filter(c => c.is_pinned)
+  // 최상위 댓글만 추출하고, 각 댓글의 대댓글 목록 매핑
+  const topLevelComments = comments.filter(c => !c.parent_id)
+  const getReplies = (parentId: number) => comments.filter(c => c.parent_id === parentId)
+
+  /* ── 댓글 단건 렌더 (데스크탑·모바일 공용) ── */
+  function renderCommentItem(c: Comment, isReply = false) {
+    const isMe = !isTeacher && c.student_id === student?.id
+    const isPinned = !!c.is_pinned
+    const replies = isReply ? [] : getReplies(c.id)
+    const canReply = !isTeacher && !isReply && commentsOn && repliesOn
+    const isReplyingToThis = replyingTo?.id === c.id
+    return (
+      <div key={c.id} className={`${styles.commentItem} ${isMe ? styles.commentItemMe : ''} ${isPinned ? styles.commentItemPinned : ''} ${isReply ? styles.replyItem : ''}`}>
+        <div className={styles.commentMeta}>
+          <div className={`${styles.commentAvatar} ${isMe ? styles.commentAvatarMe : ''} ${isPinned ? styles.commentAvatarPinned : ''} ${isReply ? styles.replyAvatar : ''}`}>
+            {c.student_name[0]}
+          </div>
+          <div className={styles.commentInfo}>
+            <span className={styles.commentName}>{c.student_name}</span>
+            {!forum.anonymous && <span className={styles.commentId}>{c.student_id}</span>}
+            {isPinned && <span className={styles.pinnedBadge}>📌 표시 중</span>}
+          </div>
+          <span className={styles.commentTime}>{formatDate(c.created_at)}</span>
+          {isTeacher && (
+            <div className={styles.teacherCommentBtns}>
+              {!isReply && (
+                <button
+                  className={`${styles.btnPinComment} ${isPinned ? styles.btnPinCommentActive : ''}`}
+                  onClick={() => togglePin(c)}
+                  disabled={pinningId === c.id}
+                  title={isPinned ? '화면에서 내리기' : '화면에 포인트 표시'}
+                >
+                  {pinningId === c.id ? '...' : isPinned ? '📌' : '📍'}
+                </button>
+              )}
+              <button className={styles.btnDeleteComment} onClick={() => deleteComment(c.id)}>🗑</button>
+            </div>
+          )}
+        </div>
+        <div className={`${styles.commentBubble} ${isMe ? styles.commentBubbleMe : ''} ${isPinned ? styles.commentBubblePinned : ''} ${isReply ? styles.replyBubble : ''}`}>
+          {c.content}
+        </div>
+        {/* 대댓글 달기 버튼 */}
+        {canReply && (
+          <button
+            className={`${styles.btnReply} ${isReplyingToThis ? styles.btnReplyActive : ''}`}
+            onClick={() => setReplyingTo(isReplyingToThis ? null : c)}
+          >
+            {isReplyingToThis ? '↩ 취소' : '↩ 답글'}
+          </button>
+        )}
+        {/* 대댓글 목록 */}
+        {replies.length > 0 && (
+          <div className={styles.repliesList}>
+            {replies.map(r => renderCommentItem(r, true))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  /* ── 입력창 렌더 (데스크탑·모바일 공용) ── */
+  function renderInputArea() {
+    if (isTeacher) return null
+    if (!commentsOn) return (
+      <div className={styles.commentsOffBox}>🔇 현재 교사가 댓글을 비활성화했습니다.</div>
+    )
+    return (
+      <div className={styles.commentInputBox}>
+        {replyingTo && (
+          <div className={styles.replyingToBar}>
+            <span className={styles.replyingToLabel}>↩ {replyingTo.student_name}에게 답글</span>
+            <button className={styles.replyingToClear} onClick={() => setReplyingTo(null)}>✕</button>
+          </div>
+        )}
+        <div className={styles.commentInputRow}>
+          <textarea
+            className={styles.commentInput}
+            value={commentInput}
+            onChange={e => setCommentInput(e.target.value)}
+            placeholder={replyingTo ? `${replyingTo.student_name}에게 답글...` : '의견을 입력하세요...'}
+            rows={2}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment() } }}
+          />
+          <button className={styles.btnSend} onClick={submitComment} disabled={submitting || !commentInput.trim()}>
+            {submitting ? '...' : '전송'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   /* ── 학생/교사 공통 결과 렌더 헬퍼 ── */
   function renderResultContent(poll: Poll, responses: PollResponse[], total: number) {
@@ -743,6 +853,75 @@ export default function ForumPage() {
     )
   }
 
+  /* ── 모바일 댓글 바텀시트 ── */
+  function renderMobileCommentSheet() {
+    return (
+      <>
+        {/* 댓글 열기 FAB */}
+        <button
+          className={`${styles.mobileCommentFab} ${mobileCommentOpen ? styles.mobileCommentFabHidden : ''}`}
+          onClick={() => setMobileCommentOpen(true)}
+        >
+          <span className={styles.mobileCommentFabIcon}>💬</span>
+          <span className={styles.mobileCommentFabLabel}>댓글 {comments.length > 0 ? `${comments.length}개` : '보기'}</span>
+        </button>
+
+        {/* 딤 배경 */}
+        {mobileCommentOpen && (
+          <div className={styles.mobileSheetDim} onClick={() => setMobileCommentOpen(false)} />
+        )}
+
+        {/* 바텀시트 */}
+        <div className={`${styles.mobileCommentSheet} ${mobileCommentOpen ? styles.mobileCommentSheetOpen : ''}`}>
+          {/* 핸들 + 헤더 */}
+          <div className={styles.mobileSheetHeader} onClick={() => setMobileCommentOpen(false)}>
+            <div className={styles.mobileSheetHandle} />
+            <div className={styles.mobileSheetTitle}>
+              <span>💬 실시간 토론</span>
+              <span className={styles.commentCount}>{comments.length}개</span>
+              {!commentsOn && <span className={styles.commentsOffBadge}>🔇 비활성</span>}
+            </div>
+          </div>
+
+          {/* 학생 정체성 */}
+          {!isTeacher && (
+            <div className={styles.myIdentity}>
+              <div className={styles.myAvatar}>{forum!.anonymous ? '?' : student!.name[0]}</div>
+              <div>
+                <div className={styles.myName}>{forum!.anonymous ? '익명으로 참여 중' : student!.name}</div>
+                <div className={styles.myId}>{forum!.anonymous ? '댓글이 익명으로 표시됩니다' : student!.id}</div>
+              </div>
+            </div>
+          )}
+          {isTeacher && (
+            <div className={`${styles.myIdentity} ${styles.teacherIdentity}`}>
+              <div className={`${styles.myAvatar} ${styles.teacherAvatar}`}>👩‍🏫</div>
+              <div>
+                <div className={styles.myName}>교사 관리 모드</div>
+                <div className={styles.myId}>댓글 {commentsOn ? '활성화' : '비활성화'} 상태</div>
+              </div>
+            </div>
+          )}
+
+          {/* 댓글 목록 */}
+          <div className={styles.mobileSheetList}>
+            {topLevelComments.length === 0 && (
+              <div className={styles.commentsEmpty}>
+                아직 댓글이 없어요.<br />
+                {commentsOn ? '첫 번째로 의견을 남겨보세요!' : '교사가 댓글을 활성화하면 참여할 수 있어요.'}
+              </div>
+            )}
+            {topLevelComments.map(c => renderCommentItem(c))}
+            <div ref={commentsEndRef} />
+          </div>
+
+          {/* 입력창 */}
+          {renderInputArea()}
+        </div>
+      </>
+    )
+  }
+
   return (
     <div className={styles.page}>
       {/* 학생용 설문 팝업 */}
@@ -814,6 +993,20 @@ export default function ForumPage() {
                 </button>
                 <span className={`${styles.tcToggleStatus} ${commentsOn ? styles.tcStatusOn : styles.tcStatusOff}`}>
                   {commentsOn ? 'ON' : 'OFF'}
+                </span>
+              </div>
+              {/* 대댓글 ON/OFF */}
+              <div className={styles.tcToggleGroup}>
+                <span className={styles.tcToggleLabel}>답글</span>
+                <button
+                  className={`${styles.tcToggle} ${repliesOn ? styles.tcToggleOn : styles.tcToggleOff}`}
+                  onClick={toggleReplies} disabled={togglingReplies || !commentsOn}
+                  title={!commentsOn ? '댓글이 비활성화 상태입니다' : ''}
+                >
+                  <div className={styles.tcToggleKnob} />
+                </button>
+                <span className={`${styles.tcToggleStatus} ${repliesOn && commentsOn ? styles.tcStatusOn : styles.tcStatusOff}`}>
+                  {repliesOn && commentsOn ? 'ON' : 'OFF'}
                 </span>
               </div>
               <button className={styles.tcBtnEdit}
@@ -963,8 +1156,8 @@ export default function ForumPage() {
           )}
         </div>
 
-        {/* ── Right: Comments ── */}
-        <div className={styles.commentPanel}>
+        {/* ── Right: Comments (데스크탑만 표시) ── */}
+        <div className={`${styles.commentPanel} ${styles.desktopCommentPanel}`}>
           <div className={styles.commentHeader}>
             <span className={styles.commentHeaderTitle}>💬 실시간 토론</span>
             <div className={styles.commentHeaderRight}>
@@ -997,74 +1190,24 @@ export default function ForumPage() {
 
           {/* Comments list */}
           <div className={styles.commentsList} style={{ maxHeight: `${forum.comment_height ?? 70}vh` }}>
-            {comments.length === 0 && (
+            {topLevelComments.length === 0 && (
               <div className={styles.commentsEmpty}>
                 아직 댓글이 없어요.<br />
                 {commentsOn ? '첫 번째로 의견을 남겨보세요!' : '교사가 댓글을 활성화하면 참여할 수 있어요.'}
               </div>
             )}
-            {comments.map(c => {
-              const isMe = !isTeacher && c.student_id === student?.id
-              const isPinned = !!c.is_pinned
-              return (
-                <div
-                  key={c.id}
-                  className={`${styles.commentItem} ${isMe ? styles.commentItemMe : ''} ${isPinned ? styles.commentItemPinned : ''}`}
-                >
-                  <div className={styles.commentMeta}>
-                    <div className={`${styles.commentAvatar} ${isMe ? styles.commentAvatarMe : ''} ${isPinned ? styles.commentAvatarPinned : ''}`}>
-                      {c.student_name[0]}
-                    </div>
-                    <div className={styles.commentInfo}>
-                      <span className={styles.commentName}>{c.student_name}</span>
-                      {!forum.anonymous && <span className={styles.commentId}>{c.student_id}</span>}
-                      {isPinned && <span className={styles.pinnedBadge}>📌 표시 중</span>}
-                    </div>
-                    <span className={styles.commentTime}>{formatDate(c.created_at)}</span>
-                    {isTeacher && (
-                      <div className={styles.teacherCommentBtns}>
-                        {/* 핀 버튼 */}
-                        <button
-                          className={`${styles.btnPinComment} ${isPinned ? styles.btnPinCommentActive : ''}`}
-                          onClick={() => togglePin(c)}
-                          disabled={pinningId === c.id}
-                          title={isPinned ? '화면에서 내리기' : '화면에 포인트 표시'}
-                        >
-                          {pinningId === c.id ? '...' : isPinned ? '📌' : '📍'}
-                        </button>
-                        {/* 삭제 버튼 */}
-                        <button className={styles.btnDeleteComment} onClick={() => deleteComment(c.id)}>🗑</button>
-                      </div>
-                    )}
-                  </div>
-                  <div className={`${styles.commentBubble} ${isMe ? styles.commentBubbleMe : ''} ${isPinned ? styles.commentBubblePinned : ''}`}>
-                    {c.content}
-                  </div>
-                </div>
-              )
-            })}
+            {topLevelComments.map(c => renderCommentItem(c))}
             <div ref={commentsEndRef} />
           </div>
 
           {/* Input */}
-          {!isTeacher && (
-            commentsOn ? (
-              <div className={styles.commentInputBox}>
-                <textarea className={styles.commentInput} value={commentInput}
-                  onChange={e => setCommentInput(e.target.value)}
-                  placeholder="의견을 입력하세요..." rows={2}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment() } }} />
-                <button className={styles.btnSend} onClick={submitComment} disabled={submitting || !commentInput.trim()}>
-                  {submitting ? '...' : '전송'}
-                </button>
-              </div>
-            ) : (
-              <div className={styles.commentsOffBox}>
-                🔇 현재 교사가 댓글을 비활성화했습니다.
-              </div>
-            )
-          )}
+          {renderInputArea()}
         </div>
+      </div>
+
+      {/* 모바일 댓글 바텀시트 */}
+      <div className={styles.mobileOnly}>
+        {renderMobileCommentSheet()}
       </div>
     </div>
   )
