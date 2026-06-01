@@ -119,9 +119,26 @@
 .commentBubbleMe { background: var(--student-light); border-radius: 10px 10px 10px 0; }
 
 .commentInputBox {
-  display: flex; gap: 0.5rem;
-  padding: 0.75rem 1.1rem; border-top: 1.5px solid var(--border); flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 0;
+  border-top: 1.5px solid var(--border); flex-shrink: 0;
   background: white;
+}
+.replyingToBar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.35rem 1.1rem 0.3rem;
+  background: var(--student-light);
+  border-bottom: 1px solid var(--student-border);
+  font-size: 0.78rem; color: var(--student); font-weight: 600;
+}
+.replyingToLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.replyingToClear {
+  background: none; border: none; cursor: pointer; font-size: 0.8rem;
+  color: var(--student); opacity: 0.6; padding: 0 0 0 0.5rem; flex-shrink: 0;
+}
+.replyingToClear:hover { opacity: 1; }
+.commentInputRow {
+  display: flex; gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
 }
 .commentInput {
   flex: 1; padding: 0.6rem 0.8rem; border: 1.5px solid var(--border); border-radius: 10px;
@@ -233,6 +250,48 @@
   padding: 0.85rem 1.1rem; background: var(--danger-light); color: var(--danger);
   font-size: 0.83rem; font-weight: 500; text-align: center; flex-shrink: 0;
   border-top: 1px solid #F5BCBC;
+}
+
+/* ═══════════════════════════════════════════════
+   ↩ 대댓글(답글) 시스템
+   ═══════════════════════════════════════════════ */
+
+.btnReply {
+  margin-left: 34px;
+  margin-top: 2px;
+  display: inline-flex; align-items: center; gap: 3px;
+  background: none; border: none; cursor: pointer;
+  font-size: 0.72rem; font-weight: 600; color: var(--text-hint);
+  font-family: 'Noto Sans KR', sans-serif;
+  padding: 2px 6px; border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.btnReply:hover { color: var(--student); background: var(--student-light); }
+.btnReplyActive { color: var(--danger) !important; background: var(--danger-light) !important; }
+
+.repliesList {
+  margin-left: 22px;
+  margin-top: 6px;
+  display: flex; flex-direction: column; gap: 0.6rem;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+}
+
+.replyItem {
+  gap: 0.2rem !important;
+}
+
+.replyAvatar {
+  width: 22px !important; height: 22px !important;
+  font-size: 0.65rem !important;
+}
+
+.replyBubble {
+  margin-left: 28px !important;
+  font-size: 0.82rem !important;
+  padding: 0.4rem 0.7rem !important;
+  background: #FAFAF8 !important;
+  border-radius: 0 8px 8px 8px !important;
 }
 
 /* ═══════════════════════════════════════════════
@@ -828,3 +887,334 @@
   transition: all 0.15s;
 }
 .docViewerErrorLink:hover { border-color: #6b7280; color: #111; }
+
+/* ══════════════════════════════════════════════
+   모바일 반응형 스타일 (768px 이하)
+══════════════════════════════════════════════ */
+
+/* 데스크탑에서만 보이는 댓글 패널 */
+.desktopCommentPanel {
+  display: flex;
+}
+
+/* 모바일 전용 래퍼 — 기본 숨김, 모바일에서 표시 */
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 페이지 기본: 스크롤 가능하게 */
+  .page {
+    height: 100dvh;
+    overflow: auto;
+  }
+
+  /* 탑바 모바일 최적화 */
+  .topbar {
+    padding: 0.55rem 0.9rem;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+  }
+  .topbarLeft {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .siteName {
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .forumBadge {
+    flex-shrink: 0;
+  }
+  .topbarRight {
+    flex-shrink: 0;
+    gap: 0.5rem;
+  }
+  .stuName {
+    display: none;
+  }
+  .teacherTag {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+  .btnBack {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* 교사 컨트롤 바 — 모바일 축소 */
+  .teacherControlBar {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.65rem 0.9rem;
+  }
+  .tcBarLeft {
+    display: none;
+  }
+  .tcBarRight {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  /* 레이아웃: 2컬럼 → 1컬럼 단일 스크롤 */
+  .layout {
+    display: flex !important;
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+    flex: unset;
+  }
+
+  /* 미디어 패널: 배너→제목→영상→설명 순서로 풀 너비 */
+  .mediaPanel {
+    border-right: none;
+    border-bottom: 1.5px solid var(--border);
+    padding: 0.85rem 0.9rem;
+    gap: 0.75rem;
+    overflow: visible;
+    height: auto;
+  }
+
+  /* 제목 모바일 크기 */
+  .forumHeading {
+    font-size: 1.25rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* 영상: 16:9 비율 고정 */
+  .mediaMain {
+    border-radius: 10px;
+  }
+  .mediaIframe {
+    aspect-ratio: 16/9;
+    height: auto;
+  }
+  .mediaVideo {
+    max-height: 55vw;
+  }
+  .docViewerFrame {
+    height: 56vw;
+    min-height: 200px;
+  }
+  .docViewerLoading,
+  .docViewerError {
+    height: 56vw;
+    min-height: 200px;
+  }
+
+  /* 썸네일 */
+  .mediaThumbs {
+    gap: 0.4rem;
+  }
+  .mediaThumb {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.74rem;
+  }
+
+  /* 핀된 댓글 패널 */
+  .pinnedPanel {
+    margin: 0;
+  }
+  .pinnedGrid {
+    grid-template-columns: 1fr !important;
+    max-height: none !important;
+  }
+
+  /* 설명 박스 */
+  .descBox {
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  /* 데스크탑 댓글 패널 — 모바일에서 완전 숨김 */
+  .desktopCommentPanel {
+    display: none !important;
+  }
+
+  /* 모바일 전용 래퍼 — 모바일에서 표시 */
+  .mobileOnly {
+    display: block;
+  }
+
+  /* ── 모바일 댓글 FAB (플로팅 버튼) ── */
+  .mobileCommentFab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.25rem;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1.1rem;
+    background: var(--student, #2d6a4f);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+  }
+  .mobileCommentFab:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
+  }
+  .mobileCommentFabHidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+  }
+  .mobileCommentFabIcon {
+    font-size: 1rem;
+  }
+  .mobileCommentFabLabel {
+    font-size: 0.82rem;
+  }
+
+  /* ── 바텀시트 딤 배경 ── */
+  .mobileSheetDim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 299;
+    animation: dimIn 0.22s ease;
+  }
+  @keyframes dimIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── 바텀시트 본체 ── */
+  .mobileCommentSheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 300;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 40px rgba(0,0,0,0.18);
+    display: flex;
+    flex-direction: column;
+    max-height: 85dvh;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .mobileCommentSheetOpen {
+    transform: translateY(0);
+  }
+
+  /* 바텀시트 헤더 (핸들 + 제목) */
+  .mobileSheetHeader {
+    padding: 0.6rem 1.1rem 0.75rem;
+    border-bottom: 1.5px solid var(--border);
+    flex-shrink: 0;
+    cursor: pointer;
+    text-align: center;
+  }
+  .mobileSheetHandle {
+    width: 40px;
+    height: 4px;
+    background: #D1D5DB;
+    border-radius: 2px;
+    margin: 0 auto 0.65rem;
+  }
+  .mobileSheetTitle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  /* 바텀시트 댓글 목록 */
+  .mobileSheetList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 공지 배너 모바일 */
+  .noticeBanner {
+    font-size: 0.82rem;
+    padding: 0.6rem 0.85rem;
+  }
+
+  /* 설문 팝업 모바일 최적화 */
+  .pollOverlay {
+    padding: 1rem 0.75rem;
+    align-items: flex-end;
+  }
+  .pollBox {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 12px 12px;
+    padding: 1.1rem;
+  }
+
+  /* 설문 패널 모바일 */
+  .pollLivePanel,
+  .pollSelectPanel {
+    margin: 0 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  /* 바텀시트 댓글 입력창 */
+  .mobileCommentSheet .commentInputBox {
+    border-top: 1.5px solid var(--border);
+    flex-shrink: 0;
+    background: white;
+  }
+  .mobileCommentSheet .commentInputRow {
+    padding: 0.6rem 0.9rem;
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+    align-items: center;
+  }
+  .mobileCommentSheet .commentInput {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.7rem;
+  }
+  .mobileCommentSheet .btnSend {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+    align-self: center;
+    height: auto;
+  }
+  .mobileCommentSheet .replyingToBar {
+    padding: 0.3rem 0.9rem;
+    font-size: 0.75rem;
+  }
+  .mobileCommentSheet .commentsOffBox {
+    padding: 0.9rem 1rem;
+    padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    border-top: 1.5px solid var(--border);
+    color: var(--text-hint);
+    text-align: center;
+  }
+  /* 모바일 대댓글 여백 축소 */
+  .repliesList {
+    margin-left: 14px;
+  }
+  .btnReply {
+    margin-left: 26px;
+  }
+}
