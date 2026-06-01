@@ -279,6 +279,22 @@ export default function ForumPage() {
   const [teacherShowResultPopup, setTeacherShowResultPopup] = useState(false)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  /* ── 인라인 학생 로그인 (링크 직접 접근용) ── */
+  const [needLogin, setNeedLogin] = useState(false)
+  const [loginId, setLoginId] = useState('')
+  const [loginName, setLoginName] = useState('')
+  const [loginError, setLoginError] = useState('')
+
+  function handleInlineLogin() {
+    setLoginError('')
+    if (!loginId || !loginName) { setLoginError('학번과 이름을 모두 입력해 주세요.'); return }
+    if (loginId.length !== 5 || !/^\d{5}$/.test(loginId)) { setLoginError('학번은 5자리 숫자로 입력해 주세요.'); return }
+    const stu = { id: loginId, name: loginName }
+    sessionStorage.setItem('ph_student', JSON.stringify(stu))
+    setStudent(stu)
+    setNeedLogin(false)
+  }
+
   /* ── Auth ── */
   useEffect(() => {
     const teacher = sessionStorage.getItem('ph_teacher')
@@ -290,7 +306,7 @@ export default function ForumPage() {
     } else if (studentRaw) {
       setStudent(JSON.parse(studentRaw))
     } else {
-      router.replace('/')
+      setNeedLogin(true)
     }
   }, [router])
 
@@ -602,6 +618,35 @@ export default function ForumPage() {
     return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) + ' ' + formatTime(iso)
   }
 
+  /* ── 인라인 로그인 화면 (학번/이름 미입력 상태로 링크 직접 접근) ── */
+  if (needLogin) return (
+    <div className={styles.passwordPage}>
+      <div className={styles.passwordBox}>
+        <div className={styles.passwordIcon}>🎓</div>
+        <div className={styles.passwordTitle}>포럼 입장</div>
+        <div className={styles.passwordDesc}>학번과 이름을 입력하면 바로 참여할 수 있어요.</div>
+        <input
+          className={styles.passwordInput}
+          type="text" inputMode="numeric" maxLength={5}
+          value={loginId} onChange={e => setLoginId(e.target.value)}
+          placeholder="학번 (5자리)"
+          style={{ letterSpacing: '0.1em', marginBottom: '0.6rem' }}
+          onKeyDown={e => e.key === 'Enter' && handleInlineLogin()}
+        />
+        <input
+          className={styles.passwordInput}
+          type="text"
+          value={loginName} onChange={e => setLoginName(e.target.value)}
+          placeholder="이름"
+          style={{ letterSpacing: 'normal' }}
+          onKeyDown={e => e.key === 'Enter' && handleInlineLogin()}
+        />
+        {loginError && <div className={styles.passwordError}>{loginError}</div>}
+        <button className={styles.btnPasswordEnter} onClick={handleInlineLogin}>입장하기</button>
+      </div>
+    </div>
+  )
+
   if (!forum || (!student && !isTeacher)) return <div className="loading-center">로딩 중...</div>
 
   if (forum.password && !passwordPassed && !isTeacher) return (
@@ -615,7 +660,7 @@ export default function ForumPage() {
           onKeyDown={e => e.key === 'Enter' && checkPassword()} />
         {passwordError && <div className={styles.passwordError}>비밀번호가 올바르지 않습니다.</div>}
         <button className={styles.btnPasswordEnter} onClick={checkPassword}>입장하기</button>
-        <button className={styles.btnPasswordBack} onClick={() => router.push('/student')}>← 돌아가기</button>
+        <button className={styles.btnPasswordBack} onClick={() => { if (sessionStorage.getItem('ph_student')) router.push('/student'); else setNeedLogin(true) }}>← 돌아가기</button>
       </div>
     </div>
   )
@@ -1118,42 +1163,48 @@ export default function ForumPage() {
       }}>
         {/* ── Left: Media + Pinned + Description ── */}
         <div className={styles.mediaPanel}>
-          <h1 className={styles.forumHeading}>{forum.title}</h1>
-          {forum.notice && <div className={styles.noticeBanner}>📢 {forum.notice}</div>}
-          {mediaItems.length === 0 ? (
-            <div className={styles.mediaEmpty}>미디어가 없습니다.</div>
-          ) : (
-            <>
-              <div className={styles.mediaMain}>
-                <DocViewer item={mediaItems[activeMedia]} />
-              </div>
-              {mediaItems.length > 1 && (
-                <div className={styles.mediaThumbs}>
-                  {mediaItems.map((item, i) => (
-                    <button key={i}
-                      className={`${styles.mediaThumb} ${activeMedia === i ? styles.mediaThumbActive : ''}`}
-                      onClick={() => setActiveMedia(i)}>
-                      {item.type === 'image' ? '🖼' : item.type === 'video' ? '▶' : item.type === 'pdf' ? '📄' : item.type === 'slides' ? '📊' : '🔗'}
-                      <span>{item.caption || `미디어 ${i + 1}`}</span>
-                    </button>
-                  ))}
+          {/* 🔒 고정 구역: 제목·미디어·썸네일·핀댓글 — 설명에 밀리지 않음 */}
+          <div className={styles.mediaFixedZone}>
+            <h1 className={styles.forumHeading}>{forum.title}</h1>
+            {forum.notice && <div className={styles.noticeBanner}>📢 {forum.notice}</div>}
+            {mediaItems.length === 0 ? (
+              <div className={styles.mediaEmpty}>미디어가 없습니다.</div>
+            ) : (
+              <>
+                <div className={styles.mediaMain}>
+                  <DocViewer item={mediaItems[activeMedia]} />
                 </div>
-              )}
-            </>
-          )}
+                {mediaItems.length > 1 && (
+                  <div className={styles.mediaThumbs}>
+                    {mediaItems.map((item, i) => (
+                      <button key={i}
+                        className={`${styles.mediaThumb} ${activeMedia === i ? styles.mediaThumbActive : ''}`}
+                        onClick={() => setActiveMedia(i)}>
+                        {item.type === 'image' ? '🖼' : item.type === 'video' ? '▶' : item.type === 'pdf' ? '📄' : item.type === 'slides' ? '📊' : '🔗'}
+                        <span>{item.caption || `미디어 ${i + 1}`}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
-          {/* 📌 핀된 댓글 패널 — 미디어 아래, 모든 학생에게 표시 */}
-          <PinnedCommentsPanel
-            pinnedComments={pinnedComments}
-            anonymous={forum.anonymous ?? false}
-          />
+            {/* 📌 핀된 댓글 패널 — 미디어 아래, 모든 학생에게 표시 */}
+            <PinnedCommentsPanel
+              pinnedComments={pinnedComments}
+              anonymous={forum.anonymous ?? false}
+            />
+          </div>
 
-          {forum.description && (
-            <div className={styles.descBox}>
-              <div className={styles.descLabel}>📋 설명</div>
-              <div className={styles.descText}>{forum.description}</div>
-            </div>
-          )}
+          {/* 📜 스크롤 구역: 설명 등 긴 텍스트 */}
+          <div className={styles.mediaScrollZone}>
+            {forum.description && (
+              <div className={styles.descBox}>
+                <div className={styles.descLabel}>📋 설명</div>
+                <div className={styles.descText}>{forum.description}</div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Right: Comments (데스크탑만 표시) ── */}
