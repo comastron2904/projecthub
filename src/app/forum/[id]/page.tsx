@@ -643,7 +643,7 @@ export default function ForumPage() {
           </div>
           <div className={styles.commentInfo}>
             <span className={styles.commentName}>{c.student_name}</span>
-            {!forum.anonymous && <span className={styles.commentId}>{c.student_id}</span>}
+            {!forum?.anonymous && <span className={styles.commentId}>{c.student_id}</span>}
             {isPinned && <span className={styles.pinnedBadge}>📌 표시 중</span>}
           </div>
           <span className={styles.commentTime}>{formatDate(c.created_at)}</span>
