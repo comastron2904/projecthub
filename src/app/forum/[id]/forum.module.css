@@ -142,6 +142,11 @@
   border-top: 1.5px solid var(--border); flex-shrink: 0;
   background: white;
 }
+/* 교사 입력창 — 보라색 계열로 구분 */
+.teacherInputBox {
+  border-top-color: var(--accent-border) !important;
+  background: #FAF8FF !important;
+}
 .replyingToBar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.35rem 1.1rem 0.3rem;
@@ -256,6 +261,72 @@
 .teacherIdentity { background: #F0EBF8 !important; border-color: var(--accent-border) !important; }
 .teacherAvatar { background: var(--accent) !important; font-size: 0.9rem !important; }
 .teacherTag { font-size: 0.82rem; color: var(--accent); font-weight: 700; background: var(--accent-light); padding: 3px 10px; border-radius: 20px; }
+
+/* ── 교사 코멘트 박스 ── */
+.teacherCommentBox {
+  margin: 0.75rem 0.75rem 0;
+  background: #FFFBEA;
+  border: 1.5px solid #F5D97A;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.teacherCommentLabel {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #FEF3C7;
+  border-bottom: 1px solid #F5D97A;
+  font-size: 0.75rem; font-weight: 700; color: #92400E;
+  letter-spacing: 0.02em;
+}
+.teacherCommentEditBtn {
+  font-size: 0.72rem; font-weight: 600;
+  color: #92400E; background: transparent;
+  border: 1px solid #D97706; border-radius: 6px;
+  padding: 2px 8px; cursor: pointer;
+  transition: background 0.15s;
+}
+.teacherCommentEditBtn:hover { background: #FDE68A; }
+.teacherCommentText {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.85rem; color: #78350F;
+  line-height: 1.65; white-space: pre-wrap;
+}
+.teacherCommentEmpty {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8rem; color: #B45309;
+  font-style: italic;
+}
+.teacherCommentEditArea {
+  padding: 0.6rem 0.75rem 0.75rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.teacherCommentTextarea {
+  width: 100%; resize: vertical; min-height: 70px;
+  border: 1.5px solid #D97706; border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem; font-family: inherit; color: #1a1a1a;
+  background: white; outline: none; line-height: 1.55;
+  box-sizing: border-box;
+}
+.teacherCommentTextarea:focus { border-color: #B45309; }
+.teacherCommentActions {
+  display: flex; justify-content: flex-end; gap: 0.4rem;
+}
+.teacherCommentCancelBtn {
+  padding: 0.35rem 0.85rem; border-radius: 7px;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  border: 1.5px solid #D97706; background: white; color: #92400E;
+  transition: background 0.15s;
+}
+.teacherCommentCancelBtn:hover { background: #FEF3C7; }
+.teacherCommentSaveBtn {
+  padding: 0.35rem 0.85rem; border-radius: 7px;
+  font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  border: none; background: #D97706; color: white;
+  transition: background 0.15s;
+}
+.teacherCommentSaveBtn:hover:not(:disabled) { background: #B45309; }
+.teacherCommentSaveBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Comment controls */
 .commentHeaderRight { display: flex; align-items: center; gap: 0.5rem; }
