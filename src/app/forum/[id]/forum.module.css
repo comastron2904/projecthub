@@ -40,6 +40,16 @@
   gap: 1rem;
   border-right: 1.5px solid var(--border);
 }
+.forumHeading {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin: 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border);
+}
 .mediaEmpty { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--text-hint); font-size: 0.9rem; }
 .mediaMain { width: 100%; border-radius: 14px; overflow: hidden; background: #000; }
 .mediaBlock { width: 100%; }
