@@ -760,7 +760,6 @@ export default function ForumPage() {
           </div>
           <span className={styles.siteName}>ProjectHub</span>
           <span className={styles.forumBadge}>FORUM</span>
-          <span className={styles.forumTitle}>{forum.title}</span>
         </div>
         <div className={styles.topbarRight}>
           {isTeacher
@@ -926,6 +925,7 @@ export default function ForumPage() {
       }}>
         {/* ── Left: Media + Pinned + Description ── */}
         <div className={styles.mediaPanel}>
+          <h1 className={styles.forumHeading}>{forum.title}</h1>
           {forum.notice && <div className={styles.noticeBanner}>📢 {forum.notice}</div>}
           {mediaItems.length === 0 ? (
             <div className={styles.mediaEmpty}>미디어가 없습니다.</div>
