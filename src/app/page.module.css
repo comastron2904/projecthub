@@ -110,3 +110,56 @@
 .backLink:hover { color: var(--teacher); }
 
 .footer { margin-top: 2rem; text-align: center; font-size: 0.78rem; color: var(--text-hint); }
+
+/* ── 모바일 반응형 ── */
+@media (max-width: 480px) {
+  .page {
+    padding: 1.25rem 1rem;
+    justify-content: flex-start;
+  }
+  .wrapper {
+    width: 100%;
+  }
+  .header {
+    margin-bottom: 1.5rem;
+  }
+  .logoIcon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+  }
+  .siteTitle {
+    font-size: 1.5rem;
+  }
+  .siteSubtitle {
+    font-size: 0.78rem;
+  }
+  .tabSelector {
+    width: 100%;
+  }
+  .card {
+    width: 100%;
+    padding: 1.5rem 1.25rem;
+    border-radius: 14px;
+  }
+  .cardTitle {
+    font-size: 1.1rem;
+  }
+  .field input {
+    font-size: 1rem; /* iOS 자동 확대 방지 */
+    padding: 0.65rem 0.85rem;
+  }
+  .btnMain {
+    padding: 0.85rem;
+    font-size: 1rem;
+  }
+  .chooseBtn {
+    padding: 0.85rem 0.6rem;
+  }
+  .cbIcon {
+    font-size: 1.3rem;
+  }
+  .footer {
+    margin-top: 1.5rem;
+    font-size: 0.72rem;
+  }
+}
