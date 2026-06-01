@@ -269,6 +269,9 @@
   border: 1.5px solid #F5D97A;
   border-radius: 12px;
   overflow: hidden;
+  flex-shrink: 0;        /* 모바일 시트에서 찌그러지지 않도록 */
+  max-height: 30vh;      /* 너무 커지면 자체 스크롤 */
+  overflow-y: auto;
 }
 .teacherCommentLabel {
   display: flex; align-items: center; justify-content: space-between;
@@ -1322,5 +1325,20 @@
   }
   .btnReply {
     margin-left: 26px;
+  }
+
+  /* 모바일 교사 코멘트 박스 — 바텀시트 안에서 컴팩트하게 */
+  .teacherCommentBox {
+    margin: 0.5rem 0.75rem 0;
+    max-height: 22vh;
+  }
+  .teacherCommentText {
+    font-size: 0.82rem;
+    padding: 0.5rem 0.65rem;
+    line-height: 1.55;
+  }
+  .teacherCommentLabel {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.72rem;
   }
 }
